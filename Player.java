@@ -4,17 +4,17 @@ import java.util.Random;
 public class Player
 {
     private int maxDepth;
-    private int playerLetter;
+    private int playerColor;
 
-    Player(int maxDepth, int playerLetter)
+    Player(int maxDepth, int playerColor)
     {
         this.maxDepth = maxDepth;
-        this.playerLetter = playerLetter;
+        this.playerColor = playerColor;
     }
 
     Move MiniMax(Board board)
     {
-        if(playerLetter == Board.RED)
+        if(playerColor == Board.RED)
         {
             //If the RED plays then it wants to maximize the heuristics value
             return max(new Board(board), 0);
