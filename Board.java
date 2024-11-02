@@ -1,8 +1,8 @@
 import java.util.ArrayList;
 
 public class Board {
-    public static final int BLUE = -1;
-    public static final int RED = 1;
+    public static final int B = -1;
+    public static final int R = 1;
     public static final int EMPTY = 0;
     public int borderX;
     public int borderY;
@@ -15,7 +15,7 @@ public class Board {
         this.borderX = borderX;
         this.borderY = borderY;
         this.lastMove = new Move();
-        this.lastPlayer = BLUE;
+        this.lastPlayer = B;
         this.gameBoard = new int[borderY][borderX];
         for (int i = 0; i < this.gameBoard.length; i++) {
             for (int j = 0; j < this.gameBoard[i].length; j++) {
@@ -111,48 +111,71 @@ public class Board {
         return scoreRED - scoreBLUE;
     }
 
-    boolean isTerminal() {
-        for (int row = 0; row < this.gameBoard.length; row++) {
-            if ((this.gameBoard[row][0] == this.gameBoard[row][1]) &&
-                (this.gameBoard[row][1] == this.gameBoard[row][2]) && (this.gameBoard[row][0] != 0)) {
-                return true;
+    boolean isFull(){
+        for(int i=0;i<this.gameBoard.length;i++){
+            for(int j=0; j<this.gameBoard.length;j++){
+                if(this.gameBoard[i][j]==EMPTY){
+                    return false;
+                }
             }
         }
-
-        for (int col = 0; col < this.gameBoard[0].length; col++) {
-            if ((this.gameBoard[0][col] == this.gameBoard[1][col]) &&
-                (this.gameBoard[1][col] == this.gameBoard[2][col]) && (this.gameBoard[0][col] != 0)) {
-                return true;
-            }
-        }
-
-        if ((this.gameBoard[0][0] == this.gameBoard[1][1]) &&
-            (this.gameBoard[1][1] == this.gameBoard[2][2]) && (this.gameBoard[0][0] != 0)) {
-            return true;
-        }
-
-        if ((this.gameBoard[0][2] == this.gameBoard[1][1]) &&
-            (this.gameBoard[1][1] == this.gameBoard[2][0]) && (this.gameBoard[0][2] != 0)) {
-            return true;
-        }
-
-        for (int row = 0; row < this.gameBoard.length; row++) {
-            for (int col = 0; col < this.gameBoard[row].length; col++) {
-                if (this.gameBoard[row][col] == EMPTY) return false;
-            }
-        }
-
         return true;
     }
 
+    boolean isTerminal() {
+        return this.isFull();
+    }
+
+    public void longestSequence(int color) {
+        boolean[][] visited = new boolean[borderY][borderX];
+        int longest = 0;
+    
+        for (int row = 0; row < borderY; row++) {
+            for (int col = 0; col < borderX; col++) {
+                if (gameBoard[row][col] == color && !visited[row][col]) {
+                    longest = Math.max(longest, dfs(row, col, color, visited));
+                }
+            }
+        }
+        
+        System.out.println(longest);
+    }
+    
+    private int dfs(int row, int col, int color, boolean[][] visited) {
+        // Directions for up, down, left, right
+        int[] dRow = {-1, 1, 0, 0};
+        int[] dCol = {0, 0, -1, 1};
+    
+        visited[row][col] = true;
+        int maxLength = 1;
+    
+        for (int i = 0; i < 4; i++) {
+            int newRow = row + dRow[i];
+            int newCol = col + dCol[i];
+    
+            if (isValidCell(newRow, newCol, color, visited)) {
+                maxLength = Math.max(maxLength, 1 + dfs(newRow, newCol, color, visited));
+            }
+        }
+    
+        return maxLength;
+    }
+    
+    private boolean isValidCell(int row, int col, int color, boolean[][] visited) {
+        return row >= 0 && row < borderY && col >= 0 && col < borderX 
+               && gameBoard[row][col] == color && !visited[row][col];
+    }
+    
+    
+
     void print() {
-        System.out.println("*********");
+        System.out.println("**************");
         for (int row = 0; row < borderY; row++) {
             System.out.print("* ");
             for (int col = 0; col < borderX; col++) {
                 switch (this.gameBoard[row][col]) {
-                    case RED -> System.out.print("RED ");
-                    case BLUE -> System.out.print("BLUE ");
+                    case R -> System.out.print("R ");
+                    case B -> System.out.print("B ");
                     case EMPTY -> System.out.print("- ");
                     default -> {
                     }
@@ -160,7 +183,7 @@ public class Board {
             }
             System.out.println("*");
         }
-        System.out.println("*********");
+        System.out.println("**************");
     }
 
     Move getLastMove() {

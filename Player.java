@@ -14,7 +14,7 @@ public class Player
 
     Move MiniMax(Board board)
     {
-        if(playerColor == Board.RED)
+        if(playerColor == Board.R)
         {
             //If the RED plays then it wants to maximize the heuristics value
             return max(new Board(board), 0);
@@ -26,8 +26,6 @@ public class Player
         }
     }
 
-    // The max and min functions are called one after another until a max depth is reached or tic-tac-toe.
-    // We create a tree using backtracking DFS.
     Move max(Board board, int depth)
     {
         Random r = new Random();
@@ -39,7 +37,7 @@ public class Player
             return new Move(board.getLastMove().getRow(), board.getLastMove().getCol(), board.evaluate());
         }
         //The children-moves of the state are calculated
-        ArrayList<Board> children = board.getChildren(Board.RED);
+        ArrayList<Board> children = board.getChildren(Board.R);
         Move maxMove = new Move(Integer.MIN_VALUE); // put max node initially to smallest value.
         for(Board child: children)
         {
@@ -77,7 +75,7 @@ public class Player
         {
             return new Move(board.getLastMove().getRow(), board.getLastMove().getCol(), board.evaluate());
         }
-        ArrayList<Board> children = board.getChildren(Board.BLUE);
+        ArrayList<Board> children = board.getChildren(Board.B);
         Move minMove = new Move(Integer.MAX_VALUE);
         for(Board child: children)
         {
