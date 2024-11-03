@@ -103,5 +103,5 @@ public class Player
         }
         return minMove;
     }
-
+    
 }

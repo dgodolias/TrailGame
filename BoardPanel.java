@@ -52,7 +52,7 @@ public class BoardPanel extends JPanel {
         if (!board.isTerminal()) {
             makeAIMove();
         } else {
-            showGameOver();
+            evaluateGame();
         }
     }
 
@@ -62,7 +62,7 @@ public class BoardPanel extends JPanel {
             board.makeMove(aiMove.getRow(), aiMove.getCol(), agentColor);
             updateButtonColor(aiMove.getRow(), aiMove.getCol(), agentColor);
             if (board.isTerminal()) {
-                showGameOver();
+                evaluateGame();
             }
         }
     }
@@ -76,7 +76,26 @@ public class BoardPanel extends JPanel {
         buttons[row][col].setEnabled(false);
     }
 
-    private void showGameOver() {
-        JOptionPane.showMessageDialog(this, "Game Over!");
+    private void evaluateGame() {
+        int evaluation = board.evaluate();
+        if ((userColor == Board.RED && evaluation > 0) || (userColor == Board.BLUE && evaluation < 0)) {
+            showGameWon();
+        } else if ((userColor == Board.RED && evaluation < 0) || (userColor == Board.BLUE && evaluation > 0)) {
+            showGameLost();
+        } else {
+            showGameDraw();
+        }
+    }
+
+    private void showGameWon() {
+        JOptionPane.showMessageDialog(this, "You Won!");
+    }
+
+    private void showGameLost() {
+        JOptionPane.showMessageDialog(this, "You Lost!");
+    }
+
+    private void showGameDraw() {
+        JOptionPane.showMessageDialog(this, "It's a Draw!");
     }
 }

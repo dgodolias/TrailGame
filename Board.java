@@ -1,4 +1,6 @@
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
 
 public class Board {
     public static final int BLUE = -1;
@@ -63,85 +65,93 @@ public class Board {
         return children;
     }
 
-    int evaluate() {
-        int scoreRED = 0;
-        int scoreBLUE = 0;
-        int sum;
-
+    public int evaluate() {
+        int longestTrailRED = 0;
+        int longestTrailBLUE = 0;
+    
+        // Check rows for trails
         for (int row = 0; row < this.gameBoard.length; row++) {
-            sum = 0;
             for (int col = 0; col < this.gameBoard[row].length; col++) {
-                sum += this.gameBoard[row][col];
+                if (this.gameBoard[row][col] == RED) {
+                    longestTrailRED = Math.max(longestTrailRED, findTrailLength(row, col));
+                } else if (this.gameBoard[row][col] == BLUE) {
+                    longestTrailBLUE = Math.max(longestTrailBLUE, findTrailLength(row, col));
+                }
             }
-            if (sum == borderX) scoreRED += 10;
-            else if (sum == borderX - 1) scoreRED++;
-            else if (sum == -borderX) scoreBLUE += 10;
-            else if (sum == -(borderX - 1)) scoreBLUE++;
         }
-
+    
+        // Check columns for trails
         for (int col = 0; col < this.gameBoard[0].length; col++) {
-            sum = 0;
             for (int row = 0; row < this.gameBoard.length; row++) {
-                sum += this.gameBoard[row][col];
+                if (this.gameBoard[row][col] == RED) {
+                    longestTrailRED = Math.max(longestTrailRED, findTrailLength(row, col));
+                } else if (this.gameBoard[row][col] == BLUE) {
+                    longestTrailBLUE = Math.max(longestTrailBLUE, findTrailLength(row, col));
+                }
             }
-            if (sum == borderY) scoreRED += 10;
-            else if (sum == borderY - 1) scoreRED++;
-            else if (sum == -borderY) scoreBLUE += 10;
-            else if (sum == -(borderY - 1)) scoreBLUE++;
         }
+    
+        return longestTrailRED - longestTrailBLUE;
+    }
 
-        sum = 0;
-        for (int i = 0; i < Math.min(borderX, borderY); i++) {
-            sum += this.gameBoard[i][i];
+    int findTrailLength(int row, int col) {
+        if (row < 0 || row >= borderY || col < 0 || col >= borderX || gameBoard[row][col] == EMPTY) {
+            return 0;
         }
-        if (sum == Math.min(borderX, borderY)) scoreRED += 10;
-        else if (sum == Math.min(borderX, borderY) - 1) scoreRED++;
-        else if (sum == -Math.min(borderX, borderY)) scoreBLUE += 10;
-        else if (sum == -(Math.min(borderX, borderY) - 1)) scoreBLUE++;
-
-        sum = 0;
-        for (int i = 0; i < Math.min(borderX, borderY); i++) {
-            sum += this.gameBoard[i][borderX - i - 1];
+    
+        int color = gameBoard[row][col];
+        boolean[][] visited = new boolean[borderY][borderX];
+        Queue<int[]> queue = new LinkedList<>();
+        queue.add(new int[]{row, col});
+        visited[row][col] = true;
+        int trailLength = 0;
+    
+        while (!queue.isEmpty()) {
+            int[] current = queue.poll();
+            trailLength++;
+    
+            String[] directions = {"right", "down", "left", "up"};
+    
+            for (String direction : directions) {
+                int[] neighbor = neighborNode(current[0], current[1], direction);
+                int newRow = neighbor[0];
+                int newCol = neighbor[1];
+    
+                if (newRow != -1 && newCol != -1 && !visited[newRow][newCol] && gameBoard[newRow][newCol] == color) {
+                    queue.add(new int[]{newRow, newCol});
+                    visited[newRow][newCol] = true;
+                }
+            }
         }
-        if (sum == Math.min(borderX, borderY)) scoreRED += 10;
-        else if (sum == Math.min(borderX, borderY) - 1) scoreRED++;
-        else if (sum == -Math.min(borderX, borderY)) scoreBLUE += 10;
-        else if (sum == -(Math.min(borderX, borderY) - 1)) scoreBLUE++;
+    
+        return trailLength;
+    }
 
-        return scoreRED - scoreBLUE;
+    int[] neighborNode(int row, int col, String direction) {
+        int newRow = row, newCol = col;
+        switch (direction) {
+            case "up" -> newRow = row - 1;
+            case "down" -> newRow = row + 1;
+            case "left" -> newCol = col - 1;
+            case "right" -> newCol = col + 1;
+            default -> {
+                return new int[]{-1, -1};
+            }
+        }
+        if (newRow < 0 || newRow >= borderY || newCol < 0 || newCol >= borderX) {
+            return new int[]{-1, -1};
+        }
+        return new int[]{newRow, newCol};
     }
 
     boolean isTerminal() {
         for (int row = 0; row < this.gameBoard.length; row++) {
-            if ((this.gameBoard[row][0] == this.gameBoard[row][1]) &&
-                (this.gameBoard[row][1] == this.gameBoard[row][2]) && (this.gameBoard[row][0] != 0)) {
-                return true;
-            }
-        }
-
-        for (int col = 0; col < this.gameBoard[0].length; col++) {
-            if ((this.gameBoard[0][col] == this.gameBoard[1][col]) &&
-                (this.gameBoard[1][col] == this.gameBoard[2][col]) && (this.gameBoard[0][col] != 0)) {
-                return true;
-            }
-        }
-
-        if ((this.gameBoard[0][0] == this.gameBoard[1][1]) &&
-            (this.gameBoard[1][1] == this.gameBoard[2][2]) && (this.gameBoard[0][0] != 0)) {
-            return true;
-        }
-
-        if ((this.gameBoard[0][2] == this.gameBoard[1][1]) &&
-            (this.gameBoard[1][1] == this.gameBoard[2][0]) && (this.gameBoard[0][2] != 0)) {
-            return true;
-        }
-
-        for (int row = 0; row < this.gameBoard.length; row++) {
             for (int col = 0; col < this.gameBoard[row].length; col++) {
-                if (this.gameBoard[row][col] == EMPTY) return false;
+                if (this.gameBoard[row][col] == EMPTY) {
+                    return false;
+                }
             }
         }
-
         return true;
     }
 
