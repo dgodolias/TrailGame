@@ -1,6 +1,4 @@
 import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.Queue;
 
 public class Board {
     public static final int BLUE = -1;
@@ -46,8 +44,10 @@ public class Board {
     }
 
     boolean isValidMove(int row, int col) {
-        if ((row >= borderY) || (col >= borderX) || (row < 0) || (col < 0)) return false;
-        if (this.gameBoard[row][col] != EMPTY) return false;
+        if ((row >= borderY) || (col >= borderX) || (row < 0) || (col < 0))
+            return false;
+        if (this.gameBoard[row][col] != EMPTY)
+            return false;
         return true;
     }
 
@@ -68,63 +68,80 @@ public class Board {
     public int evaluate() {
         int longestTrailRED = 0;
         int longestTrailBLUE = 0;
+        boolean[][] visited = new boolean[borderY][borderX];
     
-        // Check rows for trails
+        // Find longest path for RED and BLUE using DFS without revisiting in the same path calculation
         for (int row = 0; row < this.gameBoard.length; row++) {
             for (int col = 0; col < this.gameBoard[row].length; col++) {
-                if (this.gameBoard[row][col] == RED) {
-                    longestTrailRED = Math.max(longestTrailRED, findTrailLength(row, col));
-                } else if (this.gameBoard[row][col] == BLUE) {
-                    longestTrailBLUE = Math.max(longestTrailBLUE, findTrailLength(row, col));
+                if (this.gameBoard[row][col] == RED && !visited[row][col]) {
+                    // Find the longest path starting from this RED cell
+                    longestTrailRED = Math.max(longestTrailRED, findLongestPathDFS(row, col, RED, new boolean[borderY][borderX]));
+                } else if (this.gameBoard[row][col] == BLUE && !visited[row][col]) {
+                    // Find the longest path starting from this BLUE cell
+                    longestTrailBLUE = Math.max(longestTrailBLUE, findLongestPathDFS(row, col, BLUE, new boolean[borderY][borderX]));
                 }
             }
         }
     
-        // Check columns for trails
-        for (int col = 0; col < this.gameBoard[0].length; col++) {
-            for (int row = 0; row < this.gameBoard.length; row++) {
-                if (this.gameBoard[row][col] == RED) {
-                    longestTrailRED = Math.max(longestTrailRED, findTrailLength(row, col));
-                } else if (this.gameBoard[row][col] == BLUE) {
-                    longestTrailBLUE = Math.max(longestTrailBLUE, findTrailLength(row, col));
-                }
-            }
-        }
-    
+        System.out.println("Longest trail for RED: " + longestTrailRED);
+        System.out.println("Longest trail for BLUE: " + longestTrailBLUE);
         return longestTrailRED - longestTrailBLUE;
     }
+    
+    private int findLongestPathDFS(int row, int col, int color, boolean[][] visited) {
+        // Base case: If out of bounds, color doesn't match, or already visited in this path, return 0
+        if (row < 0 || row >= borderY || col < 0 || col >= borderX || gameBoard[row][col] != color || visited[row][col]) {
+            return 0;
+        }
+    
+        // Mark the cell as visited for this path calculation
+        visited[row][col] = true;
+    
+        // Explore all four directions (up, down, left, right)
+        int maxPath = 0;
+        maxPath = Math.max(maxPath, findLongestPathDFS(row + 1, col, color, visited));
+        maxPath = Math.max(maxPath, findLongestPathDFS(row - 1, col, color, visited));
+        maxPath = Math.max(maxPath, findLongestPathDFS(row, col + 1, color, visited));
+        maxPath = Math.max(maxPath, findLongestPathDFS(row, col - 1, color, visited));
+    
+        // Unmark the cell to allow backtracking for other paths from this starting point
+        visited[row][col] = false;
+    
+        // Return the length of the path including this cell
+        return 1 + maxPath;
+    }      
+    
 
     int findTrailLength(int row, int col) {
         if (row < 0 || row >= borderY || col < 0 || col >= borderX || gameBoard[row][col] == EMPTY) {
             return 0;
         }
-    
+
         int color = gameBoard[row][col];
         boolean[][] visited = new boolean[borderY][borderX];
-        Queue<int[]> queue = new LinkedList<>();
-        queue.add(new int[]{row, col});
+        return dfs(row, col, color, visited);
+    }
+
+    int dfs(int row, int col, int color, boolean[][] visited) {
         visited[row][col] = true;
-        int trailLength = 0;
-    
-        while (!queue.isEmpty()) {
-            int[] current = queue.poll();
-            trailLength++;
-    
-            String[] directions = {"right", "down", "left", "up"};
-    
-            for (String direction : directions) {
-                int[] neighbor = neighborNode(current[0], current[1], direction);
-                int newRow = neighbor[0];
-                int newCol = neighbor[1];
-    
-                if (newRow != -1 && newCol != -1 && !visited[newRow][newCol] && gameBoard[newRow][newCol] == color) {
-                    queue.add(new int[]{newRow, newCol});
-                    visited[newRow][newCol] = true;
-                }
+        int maxLength = 1;
+
+        int[][] directions = {
+                { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } // right, down, left, up
+        };
+
+        for (int[] direction : directions) {
+            int newRow = row + direction[0];
+            int newCol = col + direction[1];
+
+            if (newRow >= 0 && newRow < borderY && newCol >= 0 && newCol < borderX &&
+                    !visited[newRow][newCol] && gameBoard[newRow][newCol] == color) {
+                maxLength = Math.max(maxLength, 1 + dfs(newRow, newCol, color, visited));
             }
         }
-    
-        return trailLength;
+
+        visited[row][col] = false;
+        return maxLength;
     }
 
     int[] neighborNode(int row, int col, String direction) {
@@ -135,13 +152,13 @@ public class Board {
             case "left" -> newCol = col - 1;
             case "right" -> newCol = col + 1;
             default -> {
-                return new int[]{-1, -1};
+                return new int[] { -1, -1 };
             }
         }
         if (newRow < 0 || newRow >= borderY || newCol < 0 || newCol >= borderX) {
-            return new int[]{-1, -1};
+            return new int[] { -1, -1 };
         }
-        return new int[]{newRow, newCol};
+        return new int[] { newRow, newCol };
     }
 
     boolean isTerminal() {
