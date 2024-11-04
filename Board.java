@@ -67,68 +67,49 @@ public class Board {
     }
 
     public int evaluate() {
-        int longestTrailRED = 0;
-        int longestTrailBLUE = 0;
-        boolean[][] visited = new boolean[borderY][borderX];
-    
-        // Find longest path for RED and BLUE using DFS without revisiting in the same path calculation
-        for (int row = 0; row < this.gameBoard.length; row++) {
-            for (int col = 0; col < this.gameBoard[row].length; col++) {
-                if (this.gameBoard[row][col] == RED && !visited[row][col]) {
-                    // Find the longest path starting from this RED cell
-                    longestTrailRED = this.longestSequence(1);
-                } else if (this.gameBoard[row][col] == BLUE && !visited[row][col]) {
-                    // Find the longest path starting from this BLUE cell
-                    longestTrailBLUE = this.longestSequence(-1);
-                }
-            }
-        }
-        return longestTrailRED - longestTrailBLUE;
+        int largestRed = largestConnectedComponent(RED);
+        int largestBlue = largestConnectedComponent(BLUE);
+        return largestRed - largestBlue;
     }
     
-    public int longestSequence(int color) {
-        int longest = 0;
+    public int largestConnectedComponent(int color) {
+        int largest = 0;
+        boolean[][] visited = new boolean[borderY][borderX];
     
         for (int row = 0; row < borderY; row++) {
             for (int col = 0; col < borderX; col++) {
-                if (gameBoard[row][col] == color) {
-                    // Reset visited for each new start cell
-                    boolean[][] visited = new boolean[borderY][borderX];
-                    int currentLength = dfs(row, col, color, visited);
-                    longest = Math.max(longest, currentLength);
+                if (gameBoard[row][col] == color && !visited[row][col]) {
+                    int size = dfsComponent(row, col, color, visited);
+                    largest = Math.max(largest, size);
                 }
             }
         }
-        return longest;
+        return largest;
     }
     
-    private int dfs(int row, int col, int color, boolean[][] visited) {
+    private int dfsComponent(int row, int col, int color, boolean[][] visited) {
+        visited[row][col] = true;
+        int size = 1;
+    
         int[] dRow = {-1, 1, 0, 0};
         int[] dCol = {0, 0, -1, 1};
-    
-        visited[row][col] = true;
-        int maxLength = 1;
     
         for (int i = 0; i < 4; i++) {
             int newRow = row + dRow[i];
             int newCol = col + dCol[i];
     
             if (isValidCell(newRow, newCol, color, visited)) {
-                maxLength = Math.max(maxLength, 1 + dfs(newRow, newCol, color, visited));
+                size += dfsComponent(newRow, newCol, color, visited);
             }
         }
     
-        return maxLength;
+        return size;
     }
     
     private boolean isValidCell(int row, int col, int color, boolean[][] visited) {
-        return row >= 0 && row < borderY && col >= 0 && col < borderX 
+        return row >= 0 && row < borderY && col >= 0 && col < borderX
                && gameBoard[row][col] == color && !visited[row][col];
     }
-    
-    
-    
-
     boolean isTerminal() {
     for (int row = 0; row < this.gameBoard.length; row++) {
         for (int col = 0; col < this.gameBoard[row].length; col++) {
@@ -137,14 +118,6 @@ public class Board {
             }
         }
     }
-    
-    // The board is full, so we print the longest sequence for each color
-    int longestRedSequence = longestSequence(RED);
-    int longestBlueSequence = longestSequence(BLUE);
-    System.out.println("Game Over!");
-    System.out.println("Longest sequence for RED: " + longestRedSequence);
-    System.out.println("Longest sequence for BLUE: " + longestBlueSequence);
-    
     return true;
 }
 

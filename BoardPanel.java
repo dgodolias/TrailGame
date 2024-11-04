@@ -77,7 +77,13 @@ public class BoardPanel extends JPanel {
     }
 
     private void evaluateGame() {
-        int evaluation = board.evaluate();
+        int largestRedComponent = board.largestConnectedComponent(Board.RED);
+        int largestBlueComponent = board.largestConnectedComponent(Board.BLUE);
+        int evaluation = largestRedComponent - largestBlueComponent;
+    
+        System.out.println("Largest connected component for RED: " + largestRedComponent);
+        System.out.println("Largest connected component for BLUE: " + largestBlueComponent);
+    
         if ((userColor == Board.RED && evaluation > 0) || (userColor == Board.BLUE && evaluation < 0)) {
             showGameWon();
         } else if ((userColor == Board.RED && evaluation < 0) || (userColor == Board.BLUE && evaluation > 0)) {
@@ -86,6 +92,8 @@ public class BoardPanel extends JPanel {
             showGameDraw();
         }
     }
+    
+    
 
     private void showGameWon() {
         JOptionPane.showMessageDialog(this, "You Won!");
