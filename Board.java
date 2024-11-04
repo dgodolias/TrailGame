@@ -41,6 +41,7 @@ public class Board {
         this.gameBoard[row][col] = letter;
         this.lastMove = new Move(row, col);
         this.lastPlayer = letter;
+
     }
 
     boolean isValidMove(int row, int col) {
@@ -75,102 +76,78 @@ public class Board {
             for (int col = 0; col < this.gameBoard[row].length; col++) {
                 if (this.gameBoard[row][col] == RED && !visited[row][col]) {
                     // Find the longest path starting from this RED cell
-                    longestTrailRED = Math.max(longestTrailRED, findLongestPathDFS(row, col, RED, new boolean[borderY][borderX]));
+                    longestTrailRED = this.longestSequence(1);
                 } else if (this.gameBoard[row][col] == BLUE && !visited[row][col]) {
                     // Find the longest path starting from this BLUE cell
-                    longestTrailBLUE = Math.max(longestTrailBLUE, findLongestPathDFS(row, col, BLUE, new boolean[borderY][borderX]));
+                    longestTrailBLUE = this.longestSequence(-1);
                 }
             }
         }
-    
-        System.out.println("Longest trail for RED: " + longestTrailRED);
-        System.out.println("Longest trail for BLUE: " + longestTrailBLUE);
         return longestTrailRED - longestTrailBLUE;
     }
     
-    private int findLongestPathDFS(int row, int col, int color, boolean[][] visited) {
-        // Base case: If out of bounds, color doesn't match, or already visited in this path, return 0
-        if (row < 0 || row >= borderY || col < 0 || col >= borderX || gameBoard[row][col] != color || visited[row][col]) {
-            return 0;
-        }
+    public int longestSequence(int color) {
+        int longest = 0;
     
-        // Mark the cell as visited for this path calculation
-        visited[row][col] = true;
-    
-        // Explore all four directions (up, down, left, right)
-        int maxPath = 0;
-        maxPath = Math.max(maxPath, findLongestPathDFS(row + 1, col, color, visited));
-        maxPath = Math.max(maxPath, findLongestPathDFS(row - 1, col, color, visited));
-        maxPath = Math.max(maxPath, findLongestPathDFS(row, col + 1, color, visited));
-        maxPath = Math.max(maxPath, findLongestPathDFS(row, col - 1, color, visited));
-    
-        // Unmark the cell to allow backtracking for other paths from this starting point
-        visited[row][col] = false;
-    
-        // Return the length of the path including this cell
-        return 1 + maxPath;
-    }      
-    
-
-    int findTrailLength(int row, int col) {
-        if (row < 0 || row >= borderY || col < 0 || col >= borderX || gameBoard[row][col] == EMPTY) {
-            return 0;
-        }
-
-        int color = gameBoard[row][col];
-        boolean[][] visited = new boolean[borderY][borderX];
-        return dfs(row, col, color, visited);
-    }
-
-    int dfs(int row, int col, int color, boolean[][] visited) {
-        visited[row][col] = true;
-        int maxLength = 1;
-
-        int[][] directions = {
-                { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } // right, down, left, up
-        };
-
-        for (int[] direction : directions) {
-            int newRow = row + direction[0];
-            int newCol = col + direction[1];
-
-            if (newRow >= 0 && newRow < borderY && newCol >= 0 && newCol < borderX &&
-                    !visited[newRow][newCol] && gameBoard[newRow][newCol] == color) {
-                maxLength = Math.max(maxLength, 1 + dfs(newRow, newCol, color, visited));
-            }
-        }
-
-        visited[row][col] = false;
-        return maxLength;
-    }
-
-    int[] neighborNode(int row, int col, String direction) {
-        int newRow = row, newCol = col;
-        switch (direction) {
-            case "up" -> newRow = row - 1;
-            case "down" -> newRow = row + 1;
-            case "left" -> newCol = col - 1;
-            case "right" -> newCol = col + 1;
-            default -> {
-                return new int[] { -1, -1 };
-            }
-        }
-        if (newRow < 0 || newRow >= borderY || newCol < 0 || newCol >= borderX) {
-            return new int[] { -1, -1 };
-        }
-        return new int[] { newRow, newCol };
-    }
-
-    boolean isTerminal() {
-        for (int row = 0; row < this.gameBoard.length; row++) {
-            for (int col = 0; col < this.gameBoard[row].length; col++) {
-                if (this.gameBoard[row][col] == EMPTY) {
-                    return false;
+        for (int row = 0; row < borderY; row++) {
+            for (int col = 0; col < borderX; col++) {
+                if (gameBoard[row][col] == color) {
+                    // Reset visited for each new start cell
+                    boolean[][] visited = new boolean[borderY][borderX];
+                    int currentLength = dfs(row, col, color, visited);
+                    longest = Math.max(longest, currentLength);
                 }
             }
         }
-        return true;
+        return longest;
     }
+    
+    private int dfs(int row, int col, int color, boolean[][] visited) {
+        int[] dRow = {-1, 1, 0, 0};
+        int[] dCol = {0, 0, -1, 1};
+    
+        visited[row][col] = true;
+        int maxLength = 1;
+    
+        for (int i = 0; i < 4; i++) {
+            int newRow = row + dRow[i];
+            int newCol = col + dCol[i];
+    
+            if (isValidCell(newRow, newCol, color, visited)) {
+                maxLength = Math.max(maxLength, 1 + dfs(newRow, newCol, color, visited));
+            }
+        }
+    
+        return maxLength;
+    }
+    
+    private boolean isValidCell(int row, int col, int color, boolean[][] visited) {
+        return row >= 0 && row < borderY && col >= 0 && col < borderX 
+               && gameBoard[row][col] == color && !visited[row][col];
+    }
+    
+    
+    
+
+    boolean isTerminal() {
+    for (int row = 0; row < this.gameBoard.length; row++) {
+        for (int col = 0; col < this.gameBoard[row].length; col++) {
+            if (this.gameBoard[row][col] == EMPTY) {
+                return false;
+            }
+        }
+    }
+    
+    // The board is full, so we print the longest sequence for each color
+    int longestRedSequence = longestSequence(RED);
+    int longestBlueSequence = longestSequence(BLUE);
+    System.out.println("Game Over!");
+    System.out.println("Longest sequence for RED: " + longestRedSequence);
+    System.out.println("Longest sequence for BLUE: " + longestBlueSequence);
+    
+    return true;
+}
+
 
     void print() {
         System.out.println("*********");
