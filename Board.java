@@ -1,3 +1,4 @@
+import java.awt.Point;
 import java.util.ArrayList;
 
 public class Board {
@@ -11,6 +12,7 @@ public class Board {
     private int lastPlayer;
     private Move lastMove;
 
+    // Constructor initializing the board with empty cells
     Board(int borderX, int borderY) {
         this.borderX = borderX;
         this.borderY = borderY;
@@ -24,6 +26,7 @@ public class Board {
         }
     }
 
+    // Copy constructor for deep copy of the board
     Board(Board board) {
         this.borderX = board.borderX;
         this.borderY = board.borderY;
@@ -37,13 +40,14 @@ public class Board {
         }
     }
 
+    // Make a move on the board
     void makeMove(int row, int col, int letter) {
         this.gameBoard[row][col] = letter;
         this.lastMove = new Move(row, col);
         this.lastPlayer = letter;
-
     }
 
+    // Check if a move is valid
     boolean isValidMove(int row, int col) {
         if ((row >= borderY) || (col >= borderX) || (row < 0) || (col < 0))
             return false;
@@ -52,6 +56,7 @@ public class Board {
         return true;
     }
 
+    // Generate children states for possible moves
     ArrayList<Board> getChildren(int letter) {
         ArrayList<Board> children = new ArrayList<>();
         for (int row = 0; row < this.gameBoard.length; row++) {
@@ -66,78 +71,83 @@ public class Board {
         return children;
     }
 
+    // Evaluate the board state
     public int evaluate() {
         int largestRed = largestConnectedComponent(RED);
         int largestBlue = largestConnectedComponent(BLUE);
         return largestRed - largestBlue;
     }
     
-    public int largestConnectedComponent(int color) {
-        int largest = 0;
+    // Get connected components of a specific color
+    ArrayList<ArrayList<Point>> getConnectedComponents(int color) {
+        ArrayList<ArrayList<Point>> components = new ArrayList<>();
         boolean[][] visited = new boolean[borderY][borderX];
-    
+
         for (int row = 0; row < borderY; row++) {
             for (int col = 0; col < borderX; col++) {
                 if (gameBoard[row][col] == color && !visited[row][col]) {
-                    int size = dfsComponent(row, col, color, visited);
+                    ArrayList<Point> component = new ArrayList<>();
+                    dfsComponent(row, col, color, visited, component);  // Builds the component list
+                    components.add(component);
+                }
+            }
+        }
+        return components;
+    }
+
+    // DFS method to find a connected component and populate the component list while returning the size
+    private int dfsComponent(int row, int col, int color, boolean[][] visited, ArrayList<Point> component) {
+        // Mark the cell as visited
+        visited[row][col] = true;
+        component.add(new Point(col, row));  // Add Point with (x=col, y=row) for accurate representation
+
+        int size = 1;  // Start size with the current cell
+        int[] dRow = {-1, 1, 0, 0};
+        int[] dCol = {0, 0, -1, 1};
+
+        // Explore all four directions
+        for (int i = 0; i < 4; i++) {
+            int newRow = row + dRow[i];
+            int newCol = col + dCol[i];
+
+            if (isValidCell(newRow, newCol, color, visited)) {
+                size += dfsComponent(newRow, newCol, color, visited, component);  // Accumulate size
+            }
+        }
+        return size;
+    }
+
+    // Method to calculate the size of the largest connected component for a given color
+    public int largestConnectedComponent(int color) {
+        int largest = 0;
+        boolean[][] visited = new boolean[borderY][borderX];
+
+        for (int row = 0; row < borderY; row++) {
+            for (int col = 0; col < borderX; col++) {
+                if (gameBoard[row][col] == color && !visited[row][col]) {
+                    int size = dfsComponent(row, col, color, visited, new ArrayList<>());  // Call dfsComponent for size only
                     largest = Math.max(largest, size);
                 }
             }
         }
         return largest;
     }
-    
-    private int dfsComponent(int row, int col, int color, boolean[][] visited) {
-        visited[row][col] = true;
-        int size = 1;
-    
-        int[] dRow = {-1, 1, 0, 0};
-        int[] dCol = {0, 0, -1, 1};
-    
-        for (int i = 0; i < 4; i++) {
-            int newRow = row + dRow[i];
-            int newCol = col + dCol[i];
-    
-            if (isValidCell(newRow, newCol, color, visited)) {
-                size += dfsComponent(newRow, newCol, color, visited);
-            }
-        }
-    
-        return size;
-    }
-    
+
+    // Check if a cell is valid for DFS traversal
     private boolean isValidCell(int row, int col, int color, boolean[][] visited) {
         return row >= 0 && row < borderY && col >= 0 && col < borderX
-               && gameBoard[row][col] == color && !visited[row][col];
+                && gameBoard[row][col] == color && !visited[row][col];
     }
+
     boolean isTerminal() {
-    for (int row = 0; row < this.gameBoard.length; row++) {
-        for (int col = 0; col < this.gameBoard[row].length; col++) {
-            if (this.gameBoard[row][col] == EMPTY) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-
-    void print() {
-        System.out.println("*********");
-        for (int row = 0; row < borderY; row++) {
-            System.out.print("* ");
-            for (int col = 0; col < borderX; col++) {
-                switch (this.gameBoard[row][col]) {
-                    case RED -> System.out.print("RED ");
-                    case BLUE -> System.out.print("BLUE ");
-                    case EMPTY -> System.out.print("- ");
-                    default -> {
-                    }
+        for (int row = 0; row < this.gameBoard.length; row++) {
+            for (int col = 0; col < this.gameBoard[row].length; col++) {
+                if (this.gameBoard[row][col] == EMPTY) {
+                    return false;
                 }
             }
-            System.out.println("*");
         }
-        System.out.println("*********");
+        return true;
     }
 
     Move getLastMove() {
