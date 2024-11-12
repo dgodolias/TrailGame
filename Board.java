@@ -1,5 +1,5 @@
 import java.awt.Point;
-import java.util.ArrayList;
+import java.util.*;
 
 public class Board {
     public static final int BLUE = -1;
@@ -12,7 +12,6 @@ public class Board {
     private int lastPlayer;
     private Move lastMove;
 
-    // Constructor initializing the board with empty cells
     Board(int borderX, int borderY) {
         this.borderX = borderX;
         this.borderY = borderY;
@@ -20,13 +19,10 @@ public class Board {
         this.lastPlayer = BLUE;
         this.gameBoard = new int[borderY][borderX];
         for (int i = 0; i < this.gameBoard.length; i++) {
-            for (int j = 0; j < this.gameBoard[i].length; j++) {
-                this.gameBoard[i][j] = EMPTY;
-            }
+            Arrays.fill(this.gameBoard[i], EMPTY);
         }
     }
 
-    // Copy constructor for deep copy of the board
     Board(Board board) {
         this.borderX = board.borderX;
         this.borderY = board.borderY;
@@ -34,36 +30,27 @@ public class Board {
         this.lastPlayer = board.lastPlayer;
         this.gameBoard = new int[borderY][borderX];
         for (int i = 0; i < this.gameBoard.length; i++) {
-            for (int j = 0; j < this.gameBoard[i].length; j++) {
-                this.gameBoard[i][j] = board.gameBoard[i][j];
-            }
+            this.gameBoard[i] = board.gameBoard[i].clone();
         }
     }
 
-    // Make a move on the board
-    void makeMove(int row, int col, int letter) {
-        this.gameBoard[row][col] = letter;
+    void makeMove(int row, int col, int color) {
+        this.gameBoard[row][col] = color;
         this.lastMove = new Move(row, col);
-        this.lastPlayer = letter;
+        this.lastPlayer = color;
     }
 
-    // Check if a move is valid
     boolean isValidMove(int row, int col) {
-        if ((row >= borderY) || (col >= borderX) || (row < 0) || (col < 0))
-            return false;
-        if (this.gameBoard[row][col] != EMPTY)
-            return false;
-        return true;
+        return row >= 0 && row < borderY && col >= 0 && col < borderX && this.gameBoard[row][col] == EMPTY;
     }
 
-    // Generate children states for possible moves
-    ArrayList<Board> getChildren(int letter) {
+    ArrayList<Board> getChildren(int color) {
         ArrayList<Board> children = new ArrayList<>();
-        for (int row = 0; row < this.gameBoard.length; row++) {
-            for (int col = 0; col < this.gameBoard[row].length; col++) {
-                if (this.isValidMove(row, col)) {
+        for (int row = 0; row < borderY; row++) {
+            for (int col = 0; col < borderX; col++) {
+                if (isValidMove(row, col)) {
                     Board child = new Board(this);
-                    child.makeMove(row, col, letter);
+                    child.makeMove(row, col, color);
                     children.add(child);
                 }
             }
@@ -71,14 +58,215 @@ public class Board {
         return children;
     }
 
-    // Evaluate the board state
     public int evaluate() {
+        int aiColor = -this.lastPlayer;
+        int h1 = heuristic1();
+        int h2 = heuristic2(aiColor);
+        int h3 = heuristic3(aiColor);
+        int h4 = heuristic4(aiColor);
+        int weight1 = 5;
+        int weight2 = 1;
+        int weight3 = 2;
+        int weight4 = 3;
+        return weight1 * h1 + weight2 * h2 + weight3 * h3 + weight4 * h4;
+    }
+
+    public int heuristic1() {
         int largestRed = largestConnectedComponent(RED);
         int largestBlue = largestConnectedComponent(BLUE);
         return largestRed - largestBlue;
     }
-    
-    // Get connected components of a specific color
+
+    public int heuristic2(int playerColor) {
+        return computeComponentDistanceHeuristic(playerColor);
+    }
+
+    public int heuristic3(int playerColor) {
+        int score = 0;
+        double centerRow = (borderY - 1) / 2.0;
+        double centerCol = (borderX - 1) / 2.0;
+
+        for (int row = 0; row < borderY; row++) {
+            for (int col = 0; col < borderX; col++) {
+                if (gameBoard[row][col] == playerColor) {
+                    double distance = Math.sqrt(Math.pow(row - centerRow, 2) + Math.pow(col - centerCol, 2));
+                    double maxDistance = Math.sqrt(Math.pow(centerRow, 2) + Math.pow(centerCol, 2));
+                    double normalizedScore = (maxDistance - distance) / maxDistance;
+                    score += normalizedScore * 10;
+                }
+            }
+        }
+        return score;
+    }
+
+    public int heuristic4(int playerColor) {
+        int opponentColor = -playerColor;
+        int score = 0;
+        ArrayList<ArrayList<Point>> opponentComponents = getConnectedComponents(opponentColor);
+
+        for (ArrayList<Point> component : opponentComponents) {
+            if (isComponentInTightSpace(component)) {
+                int blockingPotential = evaluateBlockingPotential(component, playerColor);
+                score += blockingPotential;
+            }
+        }
+
+        return score;
+    }
+
+    private boolean isComponentInTightSpace(ArrayList<Point> component) {
+        for (Point p : component) {
+            if (p.x == 0 || p.x == borderX - 1 || p.y == 0 || p.y == borderY - 1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private int evaluateBlockingPotential(ArrayList<Point> component, int playerColor) {
+        int blockingPotential = 0;
+        Set<Point> adjacentEmptyCells = new HashSet<>();
+
+        for (Point p : component) {
+            int[] dRow = {-1, 1, 0, 0};
+            int[] dCol = {0, 0, -1, 1};
+
+            for (int i = 0; i < 4; i++) {
+                int newRow = p.y + dRow[i];
+                int newCol = p.x + dCol[i];
+
+                if (newRow >= 0 && newRow < borderY && newCol >= 0 && newCol < borderX) {
+                    if (gameBoard[newRow][newCol] == EMPTY) {
+                        adjacentEmptyCells.add(new Point(newCol, newRow));
+                    }
+                }
+            }
+        }
+
+        for (Point cell : adjacentEmptyCells) {
+            if (wouldBlockOpponent(cell, component)) {
+                blockingPotential += 5;
+            }
+        }
+
+        return blockingPotential;
+    }
+
+    private boolean wouldBlockOpponent(Point cell, ArrayList<Point> opponentComponent) {
+        int originalValue = gameBoard[cell.y][cell.x];
+        gameBoard[cell.y][cell.x] = -this.lastPlayer;
+
+        boolean isBlocked = isComponentBlocked(opponentComponent);
+
+        gameBoard[cell.y][cell.x] = originalValue;
+        return isBlocked;
+    }
+
+    private boolean isComponentBlocked(ArrayList<Point> component) {
+        for (Point p : component) {
+            int[] dRow = {-1, 1, 0, 0};
+            int[] dCol = {0, 0, -1, 1};
+
+            for (int i = 0; i < 4; i++) {
+                int newRow = p.y + dRow[i];
+                int newCol = p.x + dCol[i];
+
+                if (newRow >= 0 && newRow < borderY && newCol >= 0 && newCol < borderX) {
+                    if (gameBoard[newRow][newCol] == EMPTY) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    private int computeComponentDistanceHeuristic(int playerColor) {
+        ArrayList<ArrayList<Point>> components = getConnectedComponents(playerColor);
+        int totalScore = 0;
+
+        for (int i = 0; i < components.size(); i++) {
+            List<Point> componentA = components.get(i);
+            int sizeA = componentA.size();
+
+            for (int j = i + 1; j < components.size(); j++) {
+                List<Point> componentB = components.get(j);
+                int sizeB = componentB.size();
+
+                Integer minDistance = computeMinimumDistance(componentA, componentB, playerColor);
+
+                if (minDistance != null) {
+                    int heuristicValue = sizeA + sizeB - minDistance;
+                    totalScore += heuristicValue;
+                }
+            }
+        }
+
+        return totalScore;
+    }
+
+    private Integer computeMinimumDistance(List<Point> componentA, List<Point> componentB, int playerColor) {
+        int minDistance = Integer.MAX_VALUE;
+        boolean pathExists = false;
+
+        for (Point pointA : componentA) {
+            int[][] distances = bfsDistancesFrom(pointA, playerColor);
+
+            for (Point pointB : componentB) {
+                int distance = distances[pointB.y][pointB.x];
+
+                if (distance != -1) {
+                    pathExists = true;
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                    }
+                }
+            }
+        }
+
+        if (pathExists) {
+            return minDistance;
+        } else {
+            return null;
+        }
+    }
+
+    private int[][] bfsDistancesFrom(Point start, int playerColor) {
+        int[][] distances = new int[borderY][borderX];
+        for (int i = 0; i < borderY; i++) {
+            Arrays.fill(distances[i], -1);
+        }
+
+        Queue<Point> queue = new LinkedList<>();
+        queue.add(start);
+        distances[start.y][start.x] = 0;
+
+        while (!queue.isEmpty()) {
+            Point current = queue.poll();
+            int currentDistance = distances[current.y][current.x];
+
+            int[] dRow = {-1, 1, 0, 0};
+            int[] dCol = {0, 0, -1, 1};
+
+            for (int i = 0; i < 4; i++) {
+                int newRow = current.y + dRow[i];
+                int newCol = current.x + dCol[i];
+
+                if (newRow >= 0 && newRow < borderY && newCol >= 0 && newCol < borderX) {
+                    if (distances[newRow][newCol] == -1) {
+                        int cellValue = gameBoard[newRow][newCol];
+                        if (cellValue == EMPTY || cellValue == playerColor) {
+                            distances[newRow][newCol] = currentDistance + 1;
+                            queue.add(new Point(newCol, newRow));
+                        }
+                    }
+                }
+            }
+        }
+
+        return distances;
+    }
+
     ArrayList<ArrayList<Point>> getConnectedComponents(int color) {
         ArrayList<ArrayList<Point>> components = new ArrayList<>();
         boolean[][] visited = new boolean[borderY][borderX];
@@ -87,7 +275,7 @@ public class Board {
             for (int col = 0; col < borderX; col++) {
                 if (gameBoard[row][col] == color && !visited[row][col]) {
                     ArrayList<Point> component = new ArrayList<>();
-                    dfsComponent(row, col, color, visited, component);  // Builds the component list
+                    dfsComponent(row, col, color, visited, component);
                     components.add(component);
                 }
             }
@@ -95,29 +283,25 @@ public class Board {
         return components;
     }
 
-    // DFS method to find a connected component and populate the component list while returning the size
     private int dfsComponent(int row, int col, int color, boolean[][] visited, ArrayList<Point> component) {
-        // Mark the cell as visited
         visited[row][col] = true;
-        component.add(new Point(col, row));  // Add Point with (x=col, y=row) for accurate representation
+        component.add(new Point(col, row));
 
-        int size = 1;  // Start size with the current cell
+        int size = 1;
         int[] dRow = {-1, 1, 0, 0};
         int[] dCol = {0, 0, -1, 1};
 
-        // Explore all four directions
         for (int i = 0; i < 4; i++) {
             int newRow = row + dRow[i];
             int newCol = col + dCol[i];
 
             if (isValidCell(newRow, newCol, color, visited)) {
-                size += dfsComponent(newRow, newCol, color, visited, component);  // Accumulate size
+                size += dfsComponent(newRow, newCol, color, visited, component);
             }
         }
         return size;
     }
 
-    // Method to calculate the size of the largest connected component for a given color
     public int largestConnectedComponent(int color) {
         int largest = 0;
         boolean[][] visited = new boolean[borderY][borderX];
@@ -125,7 +309,7 @@ public class Board {
         for (int row = 0; row < borderY; row++) {
             for (int col = 0; col < borderX; col++) {
                 if (gameBoard[row][col] == color && !visited[row][col]) {
-                    int size = dfsComponent(row, col, color, visited, new ArrayList<>());  // Call dfsComponent for size only
+                    int size = dfsComponent(row, col, color, visited, new ArrayList<>());
                     largest = Math.max(largest, size);
                 }
             }
@@ -133,16 +317,15 @@ public class Board {
         return largest;
     }
 
-    // Check if a cell is valid for DFS traversal
     private boolean isValidCell(int row, int col, int color, boolean[][] visited) {
         return row >= 0 && row < borderY && col >= 0 && col < borderX
                 && gameBoard[row][col] == color && !visited[row][col];
     }
 
     boolean isTerminal() {
-        for (int row = 0; row < this.gameBoard.length; row++) {
-            for (int col = 0; col < this.gameBoard[row].length; col++) {
-                if (this.gameBoard[row][col] == EMPTY) {
+        for (int row = 0; row < borderY; row++) {
+            for (int col = 0; col < borderX; col++) {
+                if (gameBoard[row][col] == EMPTY) {
                     return false;
                 }
             }
@@ -164,9 +347,7 @@ public class Board {
 
     void setGameBoard(int[][] gameBoard) {
         for (int i = 0; i < borderY; i++) {
-            for (int j = 0; j < borderX; j++) {
-                this.gameBoard[i][j] = gameBoard[i][j];
-            }
+            this.gameBoard[i] = gameBoard[i].clone();
         }
     }
 
@@ -178,5 +359,23 @@ public class Board {
 
     void setLastPlayer(int lastPlayer) {
         this.lastPlayer = lastPlayer;
+    }
+
+    void print() {
+        System.out.println("*********");
+        for (int row = 0; row < borderY; row++) {
+            System.out.print("* ");
+            for (int col = 0; col < borderX; col++) {
+                switch (this.gameBoard[row][col]) {
+                    case RED -> System.out.print("R ");
+                    case BLUE -> System.out.print("B ");
+                    case EMPTY -> System.out.print("- ");
+                    default -> {
+                    }
+                }
+            }
+            System.out.println("*");
+        }
+        System.out.println("*********");
     }
 }

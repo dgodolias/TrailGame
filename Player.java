@@ -34,7 +34,9 @@ public class Player
         // Terminal condition: game over or maximum depth reached
         if(board.isTerminal() || (depth == this.maxDepth))
         {
-            return new Move(board.getLastMove().getRow(), board.getLastMove().getCol(), board.evaluate());
+            Move finalmove = new Move(board.getLastMove().getRow(), board.getLastMove().getCol(), board.evaluate());
+            //board.print();
+            return finalmove;
         }
 
         ArrayList<Board> children = board.getChildren(Board.RED);
@@ -80,7 +82,9 @@ public class Player
         // Terminal condition: game over or maximum depth reached
         if(board.isTerminal() || (depth == this.maxDepth))
         {
-            return new Move(board.getLastMove().getRow(), board.getLastMove().getCol(), board.evaluate());
+            Move finalmove = new Move(board.getLastMove().getRow(), board.getLastMove().getCol(), board.evaluate());
+            //board.print();
+            return finalmove;
         }
 
         ArrayList<Board> children = board.getChildren(Board.BLUE);
