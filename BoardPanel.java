@@ -36,11 +36,8 @@ public class BoardPanel extends JPanel {
                     @Override
                     public void actionPerformed(ActionEvent e) {
                         if (board.isValidMove(finalRow, finalCol)) {
-                            makeUserMove(finalRow, finalCol);
-                            System.out.println("BLUE: "+board.getConnectedComponents(-1));
-                            System.out.println("RED: " +board.getConnectedComponents(1)); 
-
-                            board.heuristic4();
+                            makeUserMove(finalRow, finalCol); 
+                            System.out.println("-----------------------------------------");
                         }
                     }
                 });
@@ -81,12 +78,7 @@ public class BoardPanel extends JPanel {
     }
 
     private void evaluateGame() {
-        int largestRedComponent = board.largestConnectedComponent(Board.RED);
-        int largestBlueComponent = board.largestConnectedComponent(Board.BLUE);
-        int evaluation = largestRedComponent - largestBlueComponent;
-    
-        System.out.println("Largest connected component for RED: " + largestRedComponent);
-        System.out.println("Largest connected component for BLUE: " + largestBlueComponent);
+        int evaluation = board.heuristic1();
 
         
         if ((userColor == Board.RED && evaluation > 0) || (userColor == Board.BLUE && evaluation < 0)) {

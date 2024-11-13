@@ -83,12 +83,11 @@ public class Player
         if(board.isTerminal() || (depth == this.maxDepth))
         {
             Move finalmove = new Move(board.getLastMove().getRow(), board.getLastMove().getCol(), board.evaluate());
-            //board.print();
             return finalmove;
         }
 
         ArrayList<Board> children = board.getChildren(Board.BLUE);
-        Move minMove = new Move(Integer.MAX_VALUE);
+        Move minMove = new Move(Integer.MAX_VALUE); 
 
         for(Board child: children)
         {
