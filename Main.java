@@ -13,7 +13,7 @@ public class Main {
                 frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
                 frame.setSize(500, 500);
 
-                BoardPanel boardPanel = new BoardPanel(7, 7, Board.BLUE, agentColor, aiAgent);
+                BoardPanel boardPanel = new BoardPanel(5, 5, Board.BLUE, agentColor, aiAgent);
                 frame.add(boardPanel);
                 frame.setVisible(true);
             }

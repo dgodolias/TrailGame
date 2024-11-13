@@ -63,12 +63,12 @@ public class Board {
         int h1 = heuristic1();
         int h2 = heuristic2(aiColor);
         int h3 = heuristic3(aiColor);
-        int h4 = heuristic4(aiColor);
+        int h4 = heuristic4();
         int weight1 = 5;
         int weight2 = 1;
         int weight3 = 2;
         int weight4 = 3;
-        return weight1 * h1 + weight2 * h2 + weight3 * h3 + weight4 * h4;
+        return weight1 * h1 + weight2 * h2 + weight3 * h3+ h4*weight4;
     }
 
     public int heuristic1() {
@@ -99,87 +99,61 @@ public class Board {
         return score;
     }
 
-    public int heuristic4(int playerColor) {
-        int opponentColor = -playerColor;
-        int score = 0;
-        ArrayList<ArrayList<Point>> opponentComponents = getConnectedComponents(opponentColor);
-
-        for (ArrayList<Point> component : opponentComponents) {
-            if (isComponentInTightSpace(component)) {
-                int blockingPotential = evaluateBlockingPotential(component, playerColor);
-                score += blockingPotential;
-            }
+    public int heuristic4() {
+        ArrayList<ArrayList<Point>> freeBlocksForBlueComponents = findFreeBlocksForEachComponent(BLUE);
+        ArrayList<ArrayList<Point>> freeBlocksForRedComponents = findFreeBlocksForEachComponent(RED);
+        
+         int red=0,blue=0;
+        for (ArrayList<Point> freeBlocks : freeBlocksForRedComponents) {
+            red = freeBlocks.size();
         }
 
-        return score;
-    }
-
-    private boolean isComponentInTightSpace(ArrayList<Point> component) {
-        for (Point p : component) {
-            if (p.x == 0 || p.x == borderX - 1 || p.y == 0 || p.y == borderY - 1) {
-                return true;
-            }
+        for (ArrayList<Point> freeBlocks : freeBlocksForBlueComponents) {
+            blue = freeBlocks.size();
         }
-        return false;
+    
+        return red-blue;
     }
+    
+        
 
-    private int evaluateBlockingPotential(ArrayList<Point> component, int playerColor) {
-        int blockingPotential = 0;
-        Set<Point> adjacentEmptyCells = new HashSet<>();
-
-        for (Point p : component) {
-            int[] dRow = {-1, 1, 0, 0};
-            int[] dCol = {0, 0, -1, 1};
-
-            for (int i = 0; i < 4; i++) {
-                int newRow = p.y + dRow[i];
-                int newCol = p.x + dCol[i];
-
-                if (newRow >= 0 && newRow < borderY && newCol >= 0 && newCol < borderX) {
-                    if (gameBoard[newRow][newCol] == EMPTY) {
-                        adjacentEmptyCells.add(new Point(newCol, newRow));
+    public ArrayList<ArrayList<Point>> findFreeBlocksForEachComponent(int color) {
+        ArrayList<ArrayList<Point>> components = this.getConnectedComponents(color);
+        ArrayList<ArrayList<Point>> componentFreeBlocks = new ArrayList<>(); // Stores free blocks for each component
+        
+        int[][] directions = {
+            {-1, 0}, // up
+            {1, 0},  // down
+            {0, -1}, // left
+            {0, 1}   // right
+        };
+        
+        for (ArrayList<Point> component : components) {
+            HashSet<Point> freeBlocksSet = new HashSet<>(); // Temporary set to store unique free blocks for the component
+            for (Point point : component) {
+                int x = point.x;
+                int y = point.y;
+                
+                for (int[] direction : directions) {
+                    int newX = x + direction[0];
+                    int newY = y + direction[1];
+                    
+                    // Ensure newX and newY are within the gameBoard boundaries
+                    if (newX >= 0 && newX < this.gameBoard[0].length && newY >= 0 && newY < this.gameBoard.length) {
+                        if (this.gameBoard[newY][newX] == EMPTY) {
+                            freeBlocksSet.add(new Point(newX, newY)); // Add the empty block to the set
+                        }
                     }
                 }
             }
+            componentFreeBlocks.add(new ArrayList<>(freeBlocksSet));
         }
-
-        for (Point cell : adjacentEmptyCells) {
-            if (wouldBlockOpponent(cell, component)) {
-                blockingPotential += 5;
-            }
-        }
-
-        return blockingPotential;
+        
+        return componentFreeBlocks; // Return the calculated list of free blocks for each component
     }
+    
+ 
 
-    private boolean wouldBlockOpponent(Point cell, ArrayList<Point> opponentComponent) {
-        int originalValue = gameBoard[cell.y][cell.x];
-        gameBoard[cell.y][cell.x] = -this.lastPlayer;
-
-        boolean isBlocked = isComponentBlocked(opponentComponent);
-
-        gameBoard[cell.y][cell.x] = originalValue;
-        return isBlocked;
-    }
-
-    private boolean isComponentBlocked(ArrayList<Point> component) {
-        for (Point p : component) {
-            int[] dRow = {-1, 1, 0, 0};
-            int[] dCol = {0, 0, -1, 1};
-
-            for (int i = 0; i < 4; i++) {
-                int newRow = p.y + dRow[i];
-                int newCol = p.x + dCol[i];
-
-                if (newRow >= 0 && newRow < borderY && newCol >= 0 && newCol < borderX) {
-                    if (gameBoard[newRow][newCol] == EMPTY) {
-                        return false;
-                    }
-                }
-            }
-        }
-        return true;
-    }
 
     private int computeComponentDistanceHeuristic(int playerColor) {
         ArrayList<ArrayList<Point>> components = getConnectedComponents(playerColor);

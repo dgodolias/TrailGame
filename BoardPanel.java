@@ -38,7 +38,9 @@ public class BoardPanel extends JPanel {
                         if (board.isValidMove(finalRow, finalCol)) {
                             makeUserMove(finalRow, finalCol);
                             System.out.println("BLUE: "+board.getConnectedComponents(-1));
-                            System.out.println("RED: " +board.getConnectedComponents(1));
+                            System.out.println("RED: " +board.getConnectedComponents(1)); 
+
+                            board.heuristic4();
                         }
                     }
                 });
