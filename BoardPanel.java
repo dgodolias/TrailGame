@@ -36,8 +36,7 @@ public class BoardPanel extends JPanel {
                     @Override
                     public void actionPerformed(ActionEvent e) {
                         if (board.isValidMove(finalRow, finalCol)) {
-                            makeUserMove(finalRow, finalCol); 
-                            System.out.println(board.getla(1)+" "+board.getConnectedComponents(-1));
+                            makeUserMove(finalRow, finalCol);
                         }
                     }
                 });
@@ -78,8 +77,11 @@ public class BoardPanel extends JPanel {
     }
 
     private void evaluateGame() {
-        int evaluation = board.heuristic1();
+        int red = board.largestConnectedComponent(1);
+        int blue=board.largestConnectedComponent(-1);
+        int evaluation = red-blue;
 
+        System.out.println("red: "+red+"   "+"blue: "+blue);
         
         if ((userColor == Board.RED && evaluation > 0) || (userColor == Board.BLUE && evaluation < 0)) {
             showGameWon();

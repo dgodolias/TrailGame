@@ -64,11 +64,11 @@ public class Board {
         int h2 = heuristic2(aiColor);
         int h3 = heuristic3(aiColor);
         int h4 = heuristic4();
-        int weight1 = 5;
-        int weight2 = 2;
+        int weight1 = 4;
+        int weight2 = 3;
         int weight3 = 3;
-        int weight4 = 1;
-        return weight1 * h1 + weight2 * h2 + weight3 * h3 + h4 * weight4;
+        int weight4 = 4;
+        return weight1 * h1 + weight2 * h2 + weight3 * h3+ h4*weight4;
     }
 
     public int heuristic1() {
@@ -98,91 +98,22 @@ public class Board {
         }
         return score;
     }
-    public int heuristic4() {
-        Point bestPointForBlue = findPointWithMostFreeSlots(BLUE);
-        Point bestPointForRed = findPointWithMostFreeSlots(RED);
-    
-        int blueFreeSlots = 0;
-        int redFreeSlots = 0;
-    
-        if (bestPointForBlue != null) {
-            blueFreeSlots = countFreeSlotsAroundPoint(bestPointForBlue);
-        }
-    
-        if (bestPointForRed != null) {
-            redFreeSlots = countFreeSlotsAroundPoint(bestPointForRed);
-        }
-        return blueFreeSlots - redFreeSlots;
-    }
 
-    public Point findPointWithMostFreeSlots(int color) {
-        ArrayList<ArrayList<Point>> components = this.getConnectedComponents(color);
-        int[][] directions = {
-            {-1, 0}, // up
-            {1, 0},  // down
-            {0, -1}, // left
-            {0, 1}   // right
-        };
-    
-        Point pointWithMostFreeSlots = null;
-        int maxFreeSlots = -1;
-    
-        for (ArrayList<Point> component : components) {
-            for (Point point : component) {
-                int freeSlots = 0;
-                int x = point.x;
-                int y = point.y;
-    
-                for (int[] direction : directions) {
-                    int newX = x + direction[0];
-                    int newY = y + direction[1];
-    
-                    // Ensure newX and newY are within the gameBoard boundaries
-                    if (newX >= 0 && newX < this.gameBoard[0].length && newY >= 0 && newY < this.gameBoard.length) {
-                        if (this.gameBoard[newY][newX] == EMPTY) {
-                            freeSlots++;
-                        }
-                    }
-                }
-    
-                if (freeSlots > maxFreeSlots) {
-                    maxFreeSlots = freeSlots;
-                    pointWithMostFreeSlots = point;
-                }
-            }
+    public int heuristic4() {
+        ArrayList<ArrayList<Point>> freeBlocksForBlueComponents = findFreeBlocksForEachComponent(BLUE);
+        ArrayList<ArrayList<Point>> freeBlocksForRedComponents = findFreeBlocksForEachComponent(RED);
+        
+         int red=0,blue=0;
+        for (ArrayList<Point> freeBlocks : freeBlocksForRedComponents) {
+            red = freeBlocks.size();
+        }
+
+        for (ArrayList<Point> freeBlocks : freeBlocksForBlueComponents) {
+            blue = freeBlocks.size();
         }
     
-        return pointWithMostFreeSlots;
+        return red-blue;
     }
-    
- 
-    public int countFreeSlotsAroundPoint(Point point) {
-        int freeSlots = 0;
-        int[][] directions = {
-            {-1, 0}, // up
-            {1, 0},  // down
-            {0, -1}, // left
-            {0, 1}   // right
-        };
-    
-        int x = point.x;
-        int y = point.y;
-    
-        for (int[] direction : directions) {
-            int newX = x + direction[0];
-            int newY = y + direction[1];
-    
-            // Ensure newX and newY are within the gameBoard boundaries
-            if (newX >= 0 && newX < this.gameBoard[0].length && newY >= 0 && newY < this.gameBoard.length) {
-                if (this.gameBoard[newY][newX] == EMPTY) {
-                    freeSlots++;
-                }
-            }
-        }
-    
-        return freeSlots;
-    }
-    
     
         
 
@@ -222,6 +153,7 @@ public class Board {
     }
     
  
+
 
     private int computeComponentDistanceHeuristic(int playerColor) {
         ArrayList<ArrayList<Point>> components = getConnectedComponents(playerColor);
@@ -401,5 +333,23 @@ public class Board {
 
     void setLastPlayer(int lastPlayer) {
         this.lastPlayer = lastPlayer;
+    }
+
+    void print() {
+        System.out.println("*********");
+        for (int row = 0; row < borderY; row++) {
+            System.out.print("* ");
+            for (int col = 0; col < borderX; col++) {
+                switch (this.gameBoard[row][col]) {
+                    case RED -> System.out.print("R ");
+                    case BLUE -> System.out.print("B ");
+                    case EMPTY -> System.out.print("- ");
+                    default -> {
+                    }
+                }
+            }
+            System.out.println("*");
+        }
+        System.out.println("*********");
     }
 }
