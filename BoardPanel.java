@@ -83,7 +83,8 @@ public class BoardPanel extends JPanel {
     
         System.out.println("Largest connected component for RED: " + largestRedComponent);
         System.out.println("Largest connected component for BLUE: " + largestBlueComponent);
-    
+
+        
         if ((userColor == Board.RED && evaluation > 0) || (userColor == Board.BLUE && evaluation < 0)) {
             showGameWon();
         } else if ((userColor == Board.RED && evaluation < 0) || (userColor == Board.BLUE && evaluation > 0)) {

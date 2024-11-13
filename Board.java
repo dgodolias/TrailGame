@@ -69,8 +69,40 @@ public class Board {
     public int evaluate() {
         int largestRed = largestConnectedComponent(RED);
         int largestBlue = largestConnectedComponent(BLUE);
-        return largestRed - largestBlue;
+        int score = largestRed - largestBlue;
+    
+        // // Bonus for diagonal moves by the computer (BLUE player)
+        // for (int row = 0; row < borderY; row++) {
+        //     for (int col = 0; col < borderX; col++) {
+        //         if (row == col && gameBoard[row][col] == RED) {
+        //             score += 5; // Adjust bonus as needed
+        //         }
+        //     }
+        // }
+    
+        if (largestRed > 5) {
+            return score + 20;
+        }
+        return score;
     }
+    
+
+    public int countComponents(int color) {
+        int componentCount = 0;
+        boolean[][] visited = new boolean[borderY][borderX];
+    
+        for (int row = 0; row < borderY; row++) {
+            for (int col = 0; col < borderX; col++) {
+                if (gameBoard[row][col] == color && !visited[row][col]) {
+                    // Found a new component, perform DFS to mark all cells in this component
+                    dfsComponent(row, col, color, visited);
+                    componentCount++;
+                }
+            }
+        }
+        return componentCount;
+    }
+
     
     public int largestConnectedComponent(int color) {
         int largest = 0;
@@ -86,7 +118,7 @@ public class Board {
         }
         return largest;
     }
-    
+
     private int dfsComponent(int row, int col, int color, boolean[][] visited) {
         visited[row][col] = true;
         int size = 1;
@@ -105,6 +137,7 @@ public class Board {
     
         return size;
     }
+
     
     private boolean isValidCell(int row, int col, int color, boolean[][] visited) {
         return row >= 0 && row < borderY && col >= 0 && col < borderX
