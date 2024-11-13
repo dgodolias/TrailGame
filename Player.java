@@ -27,52 +27,34 @@ public class Player
     }
 
     // Max function with alpha-beta pruning
-    Move max(Board board, int depth, int alpha, int beta)
-    {
-        Random r = new Random();
-
-        // Terminal condition: game over or maximum depth reached
-        if(board.isTerminal() || (depth == this.maxDepth))
-        {
+    Move max(Board board, int depth, int alpha, int beta) {
+    
+        if (board.isTerminal() || (depth == this.maxDepth)) {
             Move finalmove = new Move(board.getLastMove().getRow(), board.getLastMove().getCol(), board.evaluate());
-            //board.print();
             return finalmove;
         }
-
+    
         ArrayList<Board> children = board.getChildren(Board.RED);
         Move maxMove = new Move(Integer.MIN_VALUE);
-
-        for(Board child: children)
-        {
+    
+        for (Board child : children) {
             Move move = min(child, depth + 1, alpha, beta);
-
-            if(move.getValue() > maxMove.getValue())
-            {
+    
+            if (move.getValue() > maxMove.getValue()) {
                 maxMove.setRow(child.getLastMove().getRow());
                 maxMove.setCol(child.getLastMove().getCol());
                 maxMove.setValue(move.getValue());
             }
-            else if(move.getValue() == maxMove.getValue())
-            {
-                // Randomly choose between moves of equal value
-                if(r.nextInt(2) == 0)
-                {
-                    maxMove.setRow(child.getLastMove().getRow());
-                    maxMove.setCol(child.getLastMove().getCol());
-                    maxMove.setValue(move.getValue());
-                }
-            }
-
+    
             // Update alpha and check for beta cutoff
             alpha = Math.max(alpha, maxMove.getValue());
-            if(beta <= alpha)
-            {
-                // Beta cut-off
+            if (beta <= alpha) {
                 break;
             }
         }
         return maxMove;
     }
+    
 
     // Min function with alpha-beta pruning
     Move min(Board board, int depth, int alpha, int beta)

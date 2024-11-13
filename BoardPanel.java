@@ -37,7 +37,7 @@ public class BoardPanel extends JPanel {
                     public void actionPerformed(ActionEvent e) {
                         if (board.isValidMove(finalRow, finalCol)) {
                             makeUserMove(finalRow, finalCol); 
-                            System.out.println("-----------------------------------------");
+                            System.out.println(board.getla(1)+" "+board.getConnectedComponents(-1));
                         }
                     }
                 });

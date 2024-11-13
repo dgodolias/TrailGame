@@ -64,9 +64,9 @@ public class Board {
         int h2 = heuristic2(aiColor);
         int h3 = heuristic3(aiColor);
         int h4 = heuristic4();
-        int weight1 = 0;
-        int weight2 = 0;
-        int weight3 = 0;
+        int weight1 = 5;
+        int weight2 = 2;
+        int weight3 = 3;
         int weight4 = 1;
         return weight1 * h1 + weight2 * h2 + weight3 * h3 + h4 * weight4;
     }
@@ -74,7 +74,7 @@ public class Board {
     public int heuristic1() {
         int largestRed = largestConnectedComponent(RED);
         int largestBlue = largestConnectedComponent(BLUE);
-        return largestRed - largestBlue;
+        return largestBlue - largestRed;
     }
 
     public int heuristic2(int playerColor) {
@@ -112,7 +112,6 @@ public class Board {
         if (bestPointForRed != null) {
             redFreeSlots = countFreeSlotsAroundPoint(bestPointForRed);
         }
-        System.out.println(bestPointForRed.x+" "+bestPointForRed.y+" "+(blueFreeSlots-redFreeSlots));
         return blueFreeSlots - redFreeSlots;
     }
 
