@@ -47,7 +47,7 @@ public class Main {
         System.out.println("\nΕρώτηση: Είναι ο Giannis παππούς του Babis;");
         Clause query = new Clause("isGrandadOf", "Giannis", "Babis");
 
-        List<Map<String, String>> results = Conclusion.folBcAsk(knowledgeBase.getClauses(), query);
+        List<Map<String, String>> results = Conclusion.folBcAsk(knowledgeBase, query);
 
         // Εκτύπωση αποτελεσμάτων
         if (!results.isEmpty()) {

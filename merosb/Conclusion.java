@@ -1,26 +1,43 @@
 import java.util.*;
 
 class Conclusion {
-    public static List<Map<String, String>> folBcAsk(List<Clause> kb, Clause query) {
+    public static List<Map<String, String>> folBcAsk(KnowledgeBase kb, Clause query) {
         List<Map<String, String>> answers = new ArrayList<>();
+        System.out.println("Initial Query: " + query);
         folBcAsk(kb, List.of(query), new HashMap<>(), answers);
         return answers;
     }
 
-    private static void folBcAsk(List<Clause> kb, List<Clause> goals, Map<String, String> theta, List<Map<String, String>> answers) {
+    private static void folBcAsk(KnowledgeBase kb, List<Clause> goals, Map<String, String> theta, List<Map<String, String>> answers) {
+        System.out.println("Current Goals: " + goals);
+        System.out.println("Current Substitutions (Theta): " + theta);
+
         if (goals.isEmpty()) {
             answers.add(new HashMap<>(theta));
+            System.out.println("Answer found: " + theta);
             return;
         }
 
         Clause firstGoal = goals.get(0);
         List<Clause> restGoals = goals.subList(1, goals.size());
 
-        for (Clause rule : kb) {
-            Map<String, String> thetaPrime = Unifier.unify(firstGoal, rule, new KnowledgeBase());
+        // Iterate over both facts and rules
+        for (Clause fact : kb.getClauses()) {
+            Map<String, String> thetaPrime = Unifier.unify(firstGoal, fact, kb);
             if (thetaPrime != null) {
                 List<Clause> newGoals = new ArrayList<>(restGoals);
                 substInGoals(newGoals, thetaPrime);
+                folBcAsk(kb, newGoals, compose(theta, thetaPrime), answers);
+            }
+        }
+
+        for (Rule rule : kb.getRules()) {
+            Clause conclusion = rule.getConclusion();
+            Map<String, String> thetaPrime = Unifier.unify(firstGoal, conclusion, kb);
+            if (thetaPrime != null) {
+                List<Clause> newGoals = new ArrayList<>(rule.getPremises());
+                substInGoals(newGoals, thetaPrime);
+                newGoals.addAll(restGoals);
                 folBcAsk(kb, newGoals, compose(theta, thetaPrime), answers);
             }
         }
@@ -35,6 +52,7 @@ class Conclusion {
             }
             goals.set(i, new Clause(oldGoal.predicate, newArgs.toArray(new String[0])));
         }
+        System.out.println("Goals after substitution: " + goals);
     }
 
     private static Map<String, String> compose(Map<String, String> theta1, Map<String, String> theta2) {
@@ -42,6 +60,7 @@ class Conclusion {
         for (Map.Entry<String, String> entry : theta2.entrySet()) {
             composition.put(entry.getKey(), entry.getValue());
         }
+        System.out.println("Composed Theta: " + composition);
         return composition;
     }
 }
