@@ -5,10 +5,10 @@ import java.util.*;
 
 public class Main {
     public static void main(String[] args) {
-        // Δημιουργία βάσης γνώσεων
+        // Create the knowledge base
         KnowledgeBase knowledgeBase = new KnowledgeBase();
 
-        // Διαβάζουμε τη βάση γνώσεων από το αρχείο
+        // Read the knowledge base from the file
         try {
             BufferedReader reader = new BufferedReader(new FileReader("knowledge_base.txt"));
             String line;
@@ -16,112 +16,109 @@ public class Main {
                 line = line.trim();
                 if (line.isEmpty()) continue;
                 if (line.contains("=>")) {
-                    // Επεξεργασία κανόνα
-                    parseRule(line, knowledgeBase);
+                    // Process rule
+                    if (!parseRule(line, knowledgeBase)) {
+                        System.err.println("Error parsing rule: " + line);
+                        System.err.println("Please ensure that the rule is in the correct format:");
+                        System.err.println("[Premise1 AND Premise2 AND ...] => Conclusion");
+                        reader.close();
+                        return;
+                    }
                 } else {
-                    // Επεξεργασία γεγονότος
+                    // Process fact (clause)
                     Clause clause = parseClause(line);
                     if (clause != null) {
                         knowledgeBase.addClause(clause);
+                    } else {
+                        System.err.println("Error parsing clause: " + line);
+                        System.err.println("Please ensure that the clause is in the correct format:");
+                        System.err.println("Predicate(arg1, arg2, ...)");
+                        reader.close();
+                        return;
                     }
                 }
             }
             reader.close();
         } catch (IOException e) {
-            System.err.println("Σφάλμα κατά την ανάγνωση του αρχείου βάσης γνώσεων: " + e.getMessage());
+            System.err.println("Error reading knowledge base file: " + e.getMessage());
             return;
         }
 
-        // Εκτύπωση της βάσης γνώσεων
+        // Print the knowledge base
         knowledgeBase.printKnowledgeBase();
 
-        // Δέχεται τον προς απόδειξη τύπο από το πληκτρολόγιο
+        // Accept the query from the user
         Scanner scanner = new Scanner(System.in);
-        System.out.println("\nΕισάγετε τον προς απόδειξη τύπο (π.χ., isGrandadOf(Giannis, Babis)):");
+        System.out.println("\nEnter the query to prove (e.g., isGrandadOf(Giannis, Babis)):");
         String queryInput = scanner.nextLine().trim();
 
         Clause query = parseClause(queryInput);
         if (query == null) {
-            System.err.println("Λάθος μορφή πρότασης: " + queryInput);
+            System.err.println("Error parsing query: " + queryInput);
+            System.err.println("Please ensure that the query is in the correct format:");
+            System.err.println("Predicate(arg1, arg2, ...)");
             scanner.close();
             return;
         }
 
         List<Map<String, String>> results = Conclusion.folBcAsk(knowledgeBase, query);
 
-        // Εκτύπωση αποτελέσματος
+        // Print the result
         if (!results.isEmpty()) {
-            System.out.println("Αποτέλεσμα: Αληθές. Ο τύπος αποδείχθηκε.");
-            System.out.println("Υποκαταστάσεις:");
+            System.out.println("Result: True. The query was proved.");
+            System.out.println("Substitutions:");
             for (Map<String, String> substitution : results) {
                 System.out.println(substitution);
             }
         } else {
-            System.out.println("Αποτέλεσμα: Ψευδές. Ο τύπος δεν μπόρεσε να αποδειχθεί.");
+            System.out.println("Result: False. The query could not be proved.");
         }
 
         scanner.close();
     }
 
-    private static void parseRule(String line, KnowledgeBase kb) {
+    // Method to parse a rule from the file
+    private static boolean parseRule(String line, KnowledgeBase kb) {
         // Remove outer brackets or parentheses
         line = removeOuterBrackets(line);
-    
+
         // Split premises and conclusion using the '=>' operator
         String[] parts = line.split("=>");
         if (parts.length != 2) {
-            System.err.println("Λάθος μορφή κανόνα: " + line);
-            return;
+            return false;
         }
         String premisesPart = parts[0].trim();
         String conclusionPart = parts[1].trim();
-    
+
         // Remove outer brackets from premises
         premisesPart = removeOuterBrackets(premisesPart);
-    
+
         // Split premises using 'AND'
         String[] premiseStrings = premisesPart.split("AND");
         List<Clause> premises = new ArrayList<>();
         for (String premiseString : premiseStrings) {
             premiseString = premiseString.trim();
-            Clause premise = parseClauseWithNegation(premiseString);
+            Clause premise = parseClause(premiseString);
             if (premise != null) {
                 premises.add(premise);
             } else {
-                System.err.println("Λάθος μορφή προϋπόθεσης: " + premiseString);
-                return;
+                return false;
             }
         }
-    
+
         // Parse conclusion
         Clause conclusion = parseClause(conclusionPart);
         if (conclusion == null) {
-            System.err.println("Λάθος μορφή συμπεράσματος: " + conclusionPart);
-            return;
+            return false;
         }
-    
+
         // Add the rule to the knowledge base
         Rule rule = new Rule(premises, conclusion);
         kb.addRule(rule);
-    }
-    
-    private static Clause parseClauseWithNegation(String line) {
-        boolean isNegative = false;
-        line = line.trim();
-        if (line.startsWith("NOT")) {
-            isNegative = true;
-            line = line.substring(3).trim(); // Remove 'NOT'
-        }
-        Clause clause = parseClause(line);
-        if (clause != null && isNegative) {
-            clause.setNegative(true);
-        }
-        return clause;
+        return true;
     }
 
-    
-    
-
+    // Method to remove outer brackets or parentheses
     private static String removeOuterBrackets(String s) {
         s = s.trim();
         while ((s.startsWith("(") && s.endsWith(")")) || (s.startsWith("[") && s.endsWith("]"))) {
@@ -135,13 +132,14 @@ public class Main {
         }
         return s;
     }
-    
 
+    // Method to parse a clause
     private static Clause parseClause(String line) {
+        line = line.trim();
+
         int start = line.indexOf('(');
         int end = line.lastIndexOf(')');
         if (start == -1 || end == -1 || end < start) {
-            System.err.println("Λάθος μορφή πρότασης: " + line);
             return null;
         }
         String predicate = line.substring(0, start).trim();
@@ -150,7 +148,8 @@ public class Main {
         for (int i = 0; i < args.length; i++) {
             args[i] = args[i].trim();
         }
-        return new Clause(predicate, args);
+        Clause clause = new Clause(predicate, args);
+
+        return clause;
     }
-    
 }
