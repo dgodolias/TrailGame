@@ -79,7 +79,6 @@ public class Main {
         }
 
         Conclusion.FolBcAskResult result = Conclusion.folBcAsk(knowledgeBase, query);
-
                 // Ektyponei to apotelesma
         if (!result.answers.isEmpty()) {
             System.out.println("Apotelesma: Alithes. To erotima apodeixthike.");
@@ -87,6 +86,7 @@ public class Main {
             for (Map<String, String> substitution : result.answers) {
                 System.out.println(substitution);
             }
+
         } else {
             System.out.println("Apotelesma: Pseudes. To erotima den mporese na apodeixthei.");
         }

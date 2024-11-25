@@ -28,7 +28,7 @@ class Conclusion {
     }
 
     private static boolean folBcAsk(KnowledgeBase kb, List<Clause> goals, Map<String, String> theta,
-                                    ProofNode proofNode, Set<String> visitedGoals) {
+            ProofNode proofNode, Set<String> visitedGoals) {
         if (goals.isEmpty()) {
             proofNode.theta.putAll(theta);
             return true; // Proof succeeded
@@ -54,13 +54,12 @@ class Conclusion {
             Map<String, String> thetaPrime = Unifier.unify(substitutedGoal, fact, kb);
             if (thetaPrime != null) {
                 Map<String, String> newTheta = compose(theta, thetaPrime);
-                List<Clause> newGoals = new ArrayList<>(restGoals);
-                substInGoals(newGoals, thetaPrime);
+                List<Clause> newGoals = substituteInClauses(restGoals, thetaPrime);
                 ProofNode childNode = new ProofNode(fact, thetaPrime);
                 boolean result = folBcAsk(kb, newGoals, newTheta, childNode, visitedGoals);
                 if (result) {
                     proofNode.addChild(childNode);
-                    proofNode.theta.putAll(childNode.theta);
+                    proofNode.theta.putAll(newTheta);
                     success = true;
                     break; // Stop after finding one successful proof
                 }
@@ -69,38 +68,21 @@ class Conclusion {
 
         // Try to unify with rules
         for (Rule rule : kb.getRules()) {
-            // Create a standardized copy of the rule
             Rule standardizedRule = standardizeVariables(rule);
-            Clause conclusion = standardizedRule.getConclusion();
+            Clause conclusion = substituteInClause(standardizedRule.getConclusion(), theta);
             Map<String, String> thetaPrime = Unifier.unify(substitutedGoal, conclusion, kb);
             if (thetaPrime != null) {
                 Map<String, String> newTheta = compose(theta, thetaPrime);
-                // Process the premises
                 List<Clause> premises = standardizedRule.getPremises();
+                List<Clause> newPremises = substituteInClauses(premises, thetaPrime);
                 ProofNode childNode = new ProofNode(conclusion, thetaPrime);
-                boolean premisesProved = true;
-                Map<String, String> thetaCopy = new HashMap<>(newTheta);
-
-                for (Clause premise : premises) {
-                    ProofNode premiseNode = new ProofNode(premise, new HashMap<>());
-                    boolean premiseResult = folBcAsk(kb, List.of(premise), thetaCopy, premiseNode, visitedGoals);
-                    if (premiseResult) {
-                        childNode.addChild(premiseNode);
-                        thetaCopy.putAll(premiseNode.theta);
-                    } else {
-                        premisesProved = false;
-                        break;
-                    }
-                }
-
+                boolean premisesProved = folBcAsk(kb, newPremises, newTheta, childNode, visitedGoals);
                 if (premisesProved) {
-                    // All premises proved, now proceed with restGoals
-                    List<Clause> newGoals = new ArrayList<>(restGoals);
-                    substInGoals(newGoals, thetaCopy);
-                    boolean result = folBcAsk(kb, newGoals, thetaCopy, childNode, visitedGoals);
+                    List<Clause> newGoals = substituteInClauses(restGoals, newTheta);
+                    boolean result = folBcAsk(kb, newGoals, newTheta, childNode, visitedGoals);
                     if (result) {
                         proofNode.addChild(childNode);
-                        proofNode.theta.putAll(childNode.theta);
+                        proofNode.theta.putAll(newTheta);
                         success = true;
                         break; // Stop after finding one successful proof
                     }
@@ -112,6 +94,14 @@ class Conclusion {
         visitedGoals.remove(goalKey);
 
         return success;
+    }
+
+    private static List<Clause> substituteInClauses(List<Clause> clauses, Map<String, String> theta) {
+        List<Clause> substitutedClauses = new ArrayList<>();
+        for (Clause clause : clauses) {
+            substitutedClauses.add(substituteInClause(clause, theta));
+        }
+        return substitutedClauses;
     }
 
     // New method to generate the goalKey
@@ -134,18 +124,6 @@ class Conclusion {
         }
         keyBuilder.append(")");
         return keyBuilder.toString();
-    }
-
-    private static void substInGoals(List<Clause> goals, Map<String, String> theta) {
-        for (int i = 0; i < goals.size(); i++) {
-            Clause oldGoal = goals.get(i);
-            List<String> newArgs = new ArrayList<>();
-            for (String arg : oldGoal.arguments) {
-                String value = substitute(arg, theta);
-                newArgs.add(value);
-            }
-            goals.set(i, new Clause(oldGoal.predicate, newArgs.toArray(new String[0])));
-        }
     }
 
     private static String substitute(String arg, Map<String, String> theta) {
