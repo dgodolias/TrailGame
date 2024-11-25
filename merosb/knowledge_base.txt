@@ -1,5 +1,5 @@
 Constants: Giannis, Xristos, Babis, Sofia, Eleni, Kiriakos, Dimos, Kostas
-Relations: isFatherOf, isMotherOf, isFriendOf, isAcquaintanceOf, isGrandadOf, isGrandmomOf
+Relations: isFatherOf, isMotherOf, isFriendOf, isAcquaintanceOf, isGrandadOf, isGrandmomOf, AreMarried
 
 isFatherOf(Giannis, Xristos)
 isFatherOf(Xristos, Babis)
@@ -18,3 +18,6 @@ isFriendOf(Dimos, Eleni)
 
 [isFriendOf(x, y) AND isFriendOf(y, z)] => isAcquaintanceOf(x, z)
 [isFriendOf(x, y)] => isAcquaintanceOf(x, y)
+
+[isMotherOf(x, y) AND isFatherOf(z, y)] => AreMarried(x, z)
+[isFatherOf(x, y) AND isMotherOf(z, y)] => AreMarried(x, z)

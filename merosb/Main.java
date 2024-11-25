@@ -87,9 +87,6 @@ public class Main {
             for (Map<String, String> substitution : result.answers) {
                 System.out.println(substitution);
             }
-            // Ektyponei to dentro apodeixis
-            System.out.println("\nDentro Apodeixis:");
-            Conclusion.printProofTree(result.proofTree, 0, new HashMap<>());
         } else {
             System.out.println("Apotelesma: Pseudes. To erotima den mporese na apodeixthei.");
         }
