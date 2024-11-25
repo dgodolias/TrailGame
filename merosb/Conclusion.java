@@ -2,24 +2,39 @@ import java.util.*;
 
 class Conclusion {
 
-    public static List<Map<String, String>> folBcAsk(KnowledgeBase kb, Clause query) {
-        List<Map<String, String>> answers = new ArrayList<>();
-        ProofNode proofTree = new ProofNode(query, new HashMap<>());
-        folBcAsk(kb, List.of(query), new HashMap<>(), answers, proofTree);
-        // Ektyponei to dentro apodeixis
-        printProofTree(proofTree, 0, new HashMap<>());
-        return answers;
+    public static class FolBcAskResult {
+        public List<Map<String, String>> answers;
+        public ProofNode proofTree;
+
+        public FolBcAskResult(List<Map<String, String>> answers, ProofNode proofTree) {
+            this.answers = answers;
+            this.proofTree = proofTree;
+        }
     }
 
-    private static void folBcAsk(KnowledgeBase kb, List<Clause> goals, Map<String, String> theta, List<Map<String, String>> answers, ProofNode proofNode) {
+    public static FolBcAskResult folBcAsk(KnowledgeBase kb, Clause query) {
+        List<Map<String, String>> answers = new ArrayList<>();
+        ProofNode proofTree = new ProofNode(query, new HashMap<>());
+        boolean success = folBcAsk(kb, List.of(query), new HashMap<>(), answers, proofTree);
+        // Only print the proof tree if a successful proof was found
+        if (success) {
+            printProofTree(proofTree, 0, new HashMap<>());
+        }
+        return new FolBcAskResult(answers, proofTree);
+    }
+
+    private static boolean folBcAsk(KnowledgeBase kb, List<Clause> goals, Map<String, String> theta,
+                                    List<Map<String, String>> answers, ProofNode proofNode) {
         if (goals.isEmpty()) {
             answers.add(new HashMap<>(theta));
-            return;
+            return true; // Proof succeeded
         }
 
         Clause firstGoal = goals.get(0);
         List<Clause> restGoals = goals.subList(1, goals.size());
+        boolean success = false;
 
+        // Try to unify with facts
         for (Clause fact : kb.getClauses()) {
             Map<String, String> thetaPrime = Unifier.unify(firstGoal, fact, kb);
             if (thetaPrime != null) {
@@ -27,26 +42,40 @@ class Conclusion {
                 List<Clause> newGoals = new ArrayList<>(restGoals);
                 substInGoals(newGoals, thetaPrime);
                 ProofNode childNode = new ProofNode(fact, thetaPrime);
-                proofNode.addChild(childNode);
-                folBcAsk(kb, newGoals, newTheta, answers, childNode);
+                boolean result = folBcAsk(kb, newGoals, newTheta, answers, childNode);
+                if (result) {
+                    proofNode.addChild(childNode);
+                    success = true;
+                    // If you only want the first solution, you can return true here
+                }
+                // If result is false, do not add the childNode
             }
         }
 
+        // Try to unify with rules
         for (Rule rule : kb.getRules()) {
-            // Dimiourgia neou antigrafou tou kanona me nees metavlites
+            // Create a standardized copy of the rule
             Rule standardizedRule = standardizeVariables(rule);
             Clause conclusion = standardizedRule.getConclusion();
             Map<String, String> thetaPrime = Unifier.unify(firstGoal, conclusion, kb);
             if (thetaPrime != null) {
                 Map<String, String> newTheta = compose(theta, thetaPrime);
-                List<Clause> newGoals = new ArrayList<>(standardizedRule.getPremises());
+                List<Clause> newGoals = new ArrayList<>();
+                newGoals.addAll(standardizedRule.getPremises());
                 substInGoals(newGoals, thetaPrime);
                 newGoals.addAll(restGoals);
                 ProofNode childNode = new ProofNode(conclusion, thetaPrime);
-                proofNode.addChild(childNode);
-                folBcAsk(kb, newGoals, newTheta, answers, childNode);
+                boolean result = folBcAsk(kb, newGoals, newTheta, answers, childNode);
+                if (result) {
+                    proofNode.addChild(childNode);
+                    success = true;
+                    // If you only want the first solution, you can return true here
+                }
+                // If result is false, do not add the childNode
             }
         }
+
+        return success;
     }
 
     private static void substInGoals(List<Clause> goals, Map<String, String> theta) {
@@ -54,23 +83,29 @@ class Conclusion {
             Clause oldGoal = goals.get(i);
             List<String> newArgs = new ArrayList<>();
             for (String arg : oldGoal.arguments) {
-                String value = theta.getOrDefault(arg, arg);
+                String value = substitute(arg, theta);
                 newArgs.add(value);
             }
             goals.set(i, new Clause(oldGoal.predicate, newArgs.toArray(new String[0])));
         }
     }
 
+    private static String substitute(String arg, Map<String, String> theta) {
+        String value = arg;
+        Set<String> visited = new HashSet<>();
+        while (theta.containsKey(value) && !visited.contains(value)) {
+            visited.add(value);
+            value = theta.get(value);
+        }
+        return value;
+    }
+
     private static Map<String, String> compose(Map<String, String> theta1, Map<String, String> theta2) {
         Map<String, String> composition = new HashMap<>(theta1);
         for (Map.Entry<String, String> entry : theta2.entrySet()) {
             String var = entry.getKey();
-            String value = entry.getValue();
-            if (theta1.containsKey(value)) {
-                composition.put(var, theta1.get(value));
-            } else {
-                composition.put(var, value);
-            }
+            String value = substitute(entry.getValue(), theta1);
+            composition.put(var, value);
         }
         return composition;
     }
@@ -105,7 +140,7 @@ class Conclusion {
         return new Clause(clause.predicate, newArguments.toArray(new String[0]));
     }
 
-    private static void printProofTree(ProofNode node, int depth, Map<String, String> theta) {
+    public static void printProofTree(ProofNode node, int depth, Map<String, String> theta) {
         for (int i = 0; i < depth; i++) {
             System.out.print("  ");
         }
@@ -124,7 +159,7 @@ class Conclusion {
     private static Clause substituteInClause(Clause clause, Map<String, String> theta) {
         List<String> newArgs = new ArrayList<>();
         for (String arg : clause.arguments) {
-            String value = theta.getOrDefault(arg, arg);
+            String value = substitute(arg, theta);
             newArgs.add(value);
         }
         return new Clause(clause.predicate, newArgs.toArray(new String[0]));

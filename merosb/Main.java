@@ -78,19 +78,22 @@ public class Main {
             return;
         }
 
-        List<Map<String, String>> results = Conclusion.folBcAsk(knowledgeBase, query);
+        Conclusion.FolBcAskResult result = Conclusion.folBcAsk(knowledgeBase, query);
 
-        // Ektyponei to apotelesma
-        if (!results.isEmpty()) {
+                // Ektyponei to apotelesma
+        if (!result.answers.isEmpty()) {
             System.out.println("Apotelesma: Alithes. To erotima apodeixthike.");
             System.out.println("Ypokatastaseis:");
-            for (Map<String, String> substitution : results) {
+            for (Map<String, String> substitution : result.answers) {
                 System.out.println(substitution);
             }
+            // Ektyponei to dentro apodeixis
+            System.out.println("\nDentro Apodeixis:");
+            Conclusion.printProofTree(result.proofTree, 0, new HashMap<>());
         } else {
             System.out.println("Apotelesma: Pseudes. To erotima den mporese na apodeixthei.");
         }
-
+        
         scanner.close();
     }
 

@@ -17,4 +17,4 @@ isFriendOf(Dimos, Eleni)
 [isMotherOf(x, y) AND isMotherOf(y, z)] => isGrandmomOf(x, z)
 
 [isFriendOf(x, y) AND isFriendOf(y, z)] => isAcquaintanceOf(x, z)
-[isFriendOf(x, y)] => isAcquaintanceOf(x, z)
+[isFriendOf(x, y)] => isAcquaintanceOf(x, y)
