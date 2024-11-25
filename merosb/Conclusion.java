@@ -13,65 +13,81 @@ class Conclusion {
     }
 
     public static FolBcAskResult folBcAsk(KnowledgeBase kb, Clause query) {
-        List<Map<String, String>> answers = new ArrayList<>();
         ProofNode proofTree = new ProofNode(query, new HashMap<>());
-        boolean success = folBcAsk(kb, List.of(query), new HashMap<>(), answers, proofTree);
-        // Only print the proof tree if a successful proof was found
+        boolean success = folBcAsk(kb, List.of(query), new HashMap<>(), proofTree);
         if (success) {
+            Map<String, String> totalTheta = collectSubstitutions(proofTree);
             printProofTree(proofTree, 0, new HashMap<>());
+            List<Map<String, String>> answers = new ArrayList<>();
+            answers.add(totalTheta);
+            return new FolBcAskResult(answers, proofTree);
+        } else {
+            return new FolBcAskResult(new ArrayList<>(), proofTree);
         }
-        return new FolBcAskResult(answers, proofTree);
     }
 
     private static boolean folBcAsk(KnowledgeBase kb, List<Clause> goals, Map<String, String> theta,
-                                    List<Map<String, String>> answers, ProofNode proofNode) {
+                                    ProofNode proofNode) {
         if (goals.isEmpty()) {
-            answers.add(new HashMap<>(theta));
-            return true; // Proof succeeded
+            proofNode.theta.putAll(theta);
+            return true;
         }
 
         Clause firstGoal = goals.get(0);
         List<Clause> restGoals = goals.subList(1, goals.size());
         boolean success = false;
 
-        // Try to unify with facts
         for (Clause fact : kb.getClauses()) {
-            Map<String, String> thetaPrime = Unifier.unify(firstGoal, fact, kb);
+            Map<String, String> thetaPrime = Unifier.unify(substituteInClause(firstGoal, theta), fact, kb);
             if (thetaPrime != null) {
                 Map<String, String> newTheta = compose(theta, thetaPrime);
                 List<Clause> newGoals = new ArrayList<>(restGoals);
                 substInGoals(newGoals, thetaPrime);
                 ProofNode childNode = new ProofNode(fact, thetaPrime);
-                boolean result = folBcAsk(kb, newGoals, newTheta, answers, childNode);
+                boolean result = folBcAsk(kb, newGoals, newTheta, childNode);
                 if (result) {
                     proofNode.addChild(childNode);
+                    proofNode.theta.putAll(childNode.theta);
                     success = true;
-                    // If you only want the first solution, you can return true here
+                    break;
                 }
-                // If result is false, do not add the childNode
             }
         }
 
-        // Try to unify with rules
         for (Rule rule : kb.getRules()) {
-            // Create a standardized copy of the rule
             Rule standardizedRule = standardizeVariables(rule);
             Clause conclusion = standardizedRule.getConclusion();
-            Map<String, String> thetaPrime = Unifier.unify(firstGoal, conclusion, kb);
+            Map<String, String> thetaPrime = Unifier.unify(substituteInClause(firstGoal, theta), conclusion, kb);
             if (thetaPrime != null) {
                 Map<String, String> newTheta = compose(theta, thetaPrime);
-                List<Clause> newGoals = new ArrayList<>();
-                newGoals.addAll(standardizedRule.getPremises());
-                substInGoals(newGoals, thetaPrime);
-                newGoals.addAll(restGoals);
+                List<Clause> premises = standardizedRule.getPremises();
                 ProofNode childNode = new ProofNode(conclusion, thetaPrime);
-                boolean result = folBcAsk(kb, newGoals, newTheta, answers, childNode);
-                if (result) {
-                    proofNode.addChild(childNode);
-                    success = true;
-                    // If you only want the first solution, you can return true here
+                boolean premisesProved = true;
+                Map<String, String> thetaCopy = new HashMap<>(newTheta);
+
+                for (Clause premise : premises) {
+                    ProofNode premiseNode = new ProofNode(premise, new HashMap<>());
+                    boolean premiseResult = folBcAsk(kb, List.of(premise), thetaCopy, premiseNode);
+                    if (premiseResult) {
+                        childNode.addChild(premiseNode);
+                        thetaCopy.putAll(premiseNode.theta);
+                    } else {
+                        premisesProved = false;
+                        break;
+                    }
                 }
-                // If result is false, do not add the childNode
+
+                if (premisesProved) {
+                    List<Clause> newGoals = new ArrayList<>(restGoals);
+                    substInGoals(newGoals, thetaCopy);
+                    boolean result = folBcAsk(kb, newGoals, thetaCopy, childNode);
+                    if (result) {
+                        proofNode.addChild(childNode);
+                        proofNode.theta.putAll(childNode.theta);
+                        success = true;
+                        break;
+                    }
+                }
             }
         }
 
@@ -126,7 +142,7 @@ class Conclusion {
     private static Clause standardizeClauseVariables(Clause clause, Map<String, String> variableMapping) {
         List<String> newArguments = new ArrayList<>();
         for (String arg : clause.arguments) {
-            if (!Character.isUpperCase(arg.charAt(0))) { // If it's a variable
+            if (!Character.isUpperCase(arg.charAt(0))) {
                 String newVar = variableMapping.get(arg);
                 if (newVar == null) {
                     newVar = arg + "_" + varIndex++;
@@ -164,6 +180,14 @@ class Conclusion {
         }
         return new Clause(clause.predicate, newArgs.toArray(new String[0]));
     }
+
+    private static Map<String, String> collectSubstitutions(ProofNode node) {
+        Map<String, String> totalTheta = new HashMap<>(node.theta);
+        for (ProofNode child : node.children) {
+            totalTheta.putAll(collectSubstitutions(child));
+        }
+        return totalTheta;
+    }
 }
 
 class ProofNode {
@@ -173,7 +197,7 @@ class ProofNode {
 
     public ProofNode(Clause goal, Map<String, String> theta) {
         this.goal = goal;
-        this.theta = theta;
+        this.theta = new HashMap<>(theta);
         this.children = new ArrayList<>();
     }
 

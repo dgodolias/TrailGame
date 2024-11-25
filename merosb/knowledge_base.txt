@@ -10,6 +10,7 @@ isFriendOf(Babis, Kiriakos)
 isFriendOf(Kiriakos, Dimos)
 isFriendOf(Dimos, Eleni)
 
+
 [isFatherOf(x, y) AND isFatherOf(y, z)] => isGrandadOf(x, z)
 [isFatherOf(x, y) AND isMotherOf(y, z)] => isGrandadOf(x, z)
 
@@ -17,6 +18,7 @@ isFriendOf(Dimos, Eleni)
 [isMotherOf(x, y) AND isMotherOf(y, z)] => isGrandmomOf(x, z)
 
 [isFriendOf(x, y) AND isFriendOf(y, z)] => isAcquaintanceOf(x, z)
+[isFriendOf(x, y) AND isFriendOf(y, z)] => isAcquaintanceOf(z, x)
 [isFriendOf(x, y)] => isAcquaintanceOf(x, y)
 
 [isMotherOf(x, y) AND isFatherOf(z, y)] => AreMarried(x, z)
