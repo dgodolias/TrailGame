@@ -5,57 +5,89 @@ import java.util.*;
 
 public class Main {
     public static void main(String[] args) {
-        // Create the knowledge base
+        // Dimiourgia tis vasis gnoseon
         KnowledgeBase knowledgeBase = new KnowledgeBase();
 
-        // Read the knowledge base from the file
+        // Diavazoume ti vasi gnoseon apo to arxeio
         try {
             BufferedReader reader = new BufferedReader(new FileReader("knowledge_base.txt"));
             String line;
+            boolean isKBSection = false;
             while ((line = reader.readLine()) != null) {
                 line = line.trim();
                 if (line.isEmpty()) continue;
-                if (line.contains("=>")) {
-                    // Process rule
-                    if (!parseRule(line, knowledgeBase)) {
-                        System.err.println("Error parsing rule: " + line);
-                        System.err.println("Please ensure that the rule is in the correct format:");
-                        System.err.println("[Premise1 AND Premise2 AND ...] => Conclusion");
-                        reader.close();
-                        return;
+
+                if (line.startsWith("Constants:")) {
+                    // Epexergasia statheron
+                    String constantsLine = line.substring("Constants:".length()).trim();
+                    String[] constants = constantsLine.split(",");
+                    for (String constant : constants) {
+                        constant = constant.trim();
+                        knowledgeBase.addConstant(constant);
                     }
-                } else {
-                    // Process fact (clause)
-                    Clause clause = parseClause(line);
-                    if (clause != null) {
-                        knowledgeBase.addClause(clause);
+                } else if (line.startsWith("Variables:")) {
+                    // Epexergasia metavliton
+                    String variablesLine = line.substring("Variables:".length()).trim();
+                    String[] variables = variablesLine.split(",");
+                    for (String variable : variables) {
+                        variable = variable.trim();
+                        knowledgeBase.addVariable(variable);
+                    }
+                } else if (line.startsWith("Relations:")) {
+                    // Epexergasia sxeseon
+                    String relationsLine = line.substring("Relations:".length()).trim();
+                    String[] relations = relationsLine.split(",");
+                    for (String relation : relations) {
+                        relation = relation.trim();
+                        knowledgeBase.addRelation(relation);
+                    }
+                } else if (line.startsWith("KB:")) {
+                    // Arxi tis enotitas KB
+                    isKBSection = true;
+                } else if (isKBSection) {
+                    // Epexergasia KB
+                    if (line.contains("=>")) {
+                        // Epexergasia kanona
+                        if (!parseRule(line, knowledgeBase)) {
+                            System.err.println("Lathos stin epexergasia kanona: " + line);
+                            System.err.println("Parakaloume vevaiotheite oti o kanonas einai sti sosti morfi:");
+                            System.err.println("[Proypothesi1 AND Proypothesi2 AND ...] => Symperasma");
+                            reader.close();
+                            return;
+                        }
                     } else {
-                        System.err.println("Error parsing clause: " + line);
-                        System.err.println("Please ensure that the clause is in the correct format:");
-                        System.err.println("Predicate(arg1, arg2, ...)");
-                        reader.close();
-                        return;
+                        // Epexergasia gegonotos (clause)
+                        Clause clause = parseClause(line, knowledgeBase);
+                        if (clause != null) {
+                            knowledgeBase.addClause(clause);
+                        } else {
+                            System.err.println("Lathos stin epexergasia protasis: " + line);
+                            System.err.println("Parakaloume vevaiotheite oti i protasi einai sti sosti morfi:");
+                            System.err.println("Predicate(arg1, arg2, ...)");
+                            reader.close();
+                            return;
+                        }
                     }
                 }
             }
             reader.close();
         } catch (IOException e) {
-            System.err.println("Error reading knowledge base file: " + e.getMessage());
+            System.err.println("Lathos kata tin anagnosi tou arxeiou tis vasis gnoseon: " + e.getMessage());
             return;
         }
 
-        // Print the knowledge base
+        // Ektyponei ti vasi gnoseon
         knowledgeBase.printKnowledgeBase();
 
-        // Accept the query from the user
+        // Dexetai to erotima apo ton xristi
         Scanner scanner = new Scanner(System.in);
-        System.out.println("\nEnter the query to prove (e.g., isGrandadOf(Giannis, Babis)):");
+        System.out.println("\nEisagete to erotima pros apodeixi (px, isGrandadOf(Giannis, Babis)):");
         String queryInput = scanner.nextLine().trim();
 
-        Clause query = parseClause(queryInput);
+        Clause query = parseClause(queryInput, knowledgeBase);
         if (query == null) {
-            System.err.println("Error parsing query: " + queryInput);
-            System.err.println("Please ensure that the query is in the correct format:");
+            System.err.println("Lathos stin epexergasia tou erotimatos: " + queryInput);
+            System.err.println("Parakaloume vevaiotheite oti to erotima einai sti sosti morfi:");
             System.err.println("Predicate(arg1, arg2, ...)");
             scanner.close();
             return;
@@ -63,26 +95,32 @@ public class Main {
 
         List<Map<String, String>> results = Conclusion.folBcAsk(knowledgeBase, query);
 
-        // Print the result
+        // Ektyponei to apotelesma
         if (!results.isEmpty()) {
-            System.out.println("Result: True. The query was proved.");
-            System.out.println("Substitutions:");
+            System.out.println("Apotelesma: Alithes. To erotima apodeixthike.");
+            System.out.println("Ypokatastaseis:");
             for (Map<String, String> substitution : results) {
                 System.out.println(substitution);
             }
         } else {
-            System.out.println("Result: False. The query could not be proved.");
+            System.out.println("Apotelesma: Pseudes. To erotima den mporese na apodeixthei.");
         }
 
         scanner.close();
     }
 
-    // Method to parse a rule from the file
+    // Methodos gia tin epexergasia enos kanona apo to arxeio
     private static boolean parseRule(String line, KnowledgeBase kb) {
-        // Remove outer brackets or parentheses
+        // Afairei tis exoterikes parentheseis i agkyles
+        String originalLine = line; // Kratame to arxiko line gia minima sfalmatos
         line = removeOuterBrackets(line);
+        if (line == null) {
+            System.err.println("Lathos stin epexergasia kanona: " + originalLine);
+            System.err.println("Asymfoni amentoboli stis agkyles.");
+            return false;
+        }
 
-        // Split premises and conclusion using the '=>' operator
+        // Diaxorizoume tis proypotheseis kai to symperasma me ton '=>' telesti
         String[] parts = line.split("=>");
         if (parts.length != 2) {
             return false;
@@ -90,51 +128,70 @@ public class Main {
         String premisesPart = parts[0].trim();
         String conclusionPart = parts[1].trim();
 
-        // Remove outer brackets from premises
+        // Afairei tis exoterikes parentheseis apo tis proypotheseis
         premisesPart = removeOuterBrackets(premisesPart);
+        if (premisesPart == null) {
+            System.err.println("Lathos stin epexergasia ton proypotheseon tou kanona: " + originalLine);
+            System.err.println("Asymfonia stis agkyles twn proypotheseon.");
+            return false;
+        }
 
-        // Split premises using 'AND'
+        // Diaxorizoume tis proypotheseis me tin 'AND'
         String[] premiseStrings = premisesPart.split("AND");
         List<Clause> premises = new ArrayList<>();
         for (String premiseString : premiseStrings) {
             premiseString = premiseString.trim();
-            Clause premise = parseClause(premiseString);
+            Clause premise = parseClause(premiseString, kb);
             if (premise != null) {
                 premises.add(premise);
             } else {
+                System.err.println("Lathos stin epexergasia ths proypotheshs: " + premiseString);
                 return false;
             }
         }
 
-        // Parse conclusion
-        Clause conclusion = parseClause(conclusionPart);
+        // Epexergasia symperasmatos
+        Clause conclusion = parseClause(conclusionPart, kb);
         if (conclusion == null) {
+            System.err.println("Lathos stin epexergasia tou symperasmatos: " + conclusionPart);
             return false;
         }
 
-        // Add the rule to the knowledge base
+        // Prosthiki tou kanona sti vasi gnoseon
         Rule rule = new Rule(premises, conclusion);
         kb.addRule(rule);
         return true;
     }
 
-    // Method to remove outer brackets or parentheses
+    // Methodos gia tin afairesi exoterikon parenthesewn i agkylon
     private static String removeOuterBrackets(String s) {
         s = s.trim();
-        while ((s.startsWith("(") && s.endsWith(")")) || (s.startsWith("[") && s.endsWith("]"))) {
-            char openChar = s.charAt(0);
-            char closeChar = s.charAt(s.length() - 1);
-            if ((openChar == '(' && closeChar == ')') || (openChar == '[' && closeChar == ']')) {
-                s = s.substring(1, s.length() - 1).trim();
-            } else {
-                break;
+        if (s.isEmpty()) return s;
+        char openChar = s.charAt(0);
+        char closeChar = s.charAt(s.length() - 1);
+        if ((openChar == '(' && closeChar == ')') || (openChar == '[' && closeChar == ']')) {
+            int count = 0;
+            for (int i = 0; i < s.length(); i++) {
+                char c = s.charAt(i);
+                if (c == openChar) count++;
+                else if (c == closeChar) count--;
+                if (count == 0 && i < s.length() - 1) {
+                    // Brike kleisimo agkylis prin to telos tou string
+                    return s;
+                }
             }
+            if (count != 0) {
+                // Asymfoni amentoboli stis agkyles
+                return null;
+            }
+            s = s.substring(1, s.length() - 1).trim();
+            return s;
         }
         return s;
     }
 
-    // Method to parse a clause
-    private static Clause parseClause(String line) {
+    // Methodos gia tin epexergasia mias protasis
+    private static Clause parseClause(String line, KnowledgeBase kb) {
         line = line.trim();
 
         int start = line.indexOf('(');
@@ -143,10 +200,19 @@ public class Main {
             return null;
         }
         String predicate = line.substring(0, start).trim();
+        if (!kb.isRelation(predicate)) {
+            System.err.println("To predicate '" + predicate + "' den exei dilothei.");
+            return null;
+        }
         String argsString = line.substring(start + 1, end).trim();
         String[] args = argsString.split(",");
         for (int i = 0; i < args.length; i++) {
             args[i] = args[i].trim();
+            String arg = args[i];
+            if (!kb.isVariable(arg) && !kb.isConstant(arg)) {
+                System.err.println("To orisma '" + arg + "' den exei dilothei os metavliti i stathera.");
+                return null;
+            }
         }
         Clause clause = new Clause(predicate, args);
 
