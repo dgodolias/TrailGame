@@ -13,13 +13,16 @@ class Unifier {
 
             if (arg1.equals(arg2)) continue;
 
-            if (kb.isConstant(arg1) && kb.isConstant(arg2)) {
+            boolean arg1IsConstant = kb.isConstant(arg1);
+            boolean arg2IsConstant = kb.isConstant(arg2);
+
+            if (arg1IsConstant && arg2IsConstant) {
                 return null;
             }
 
-            if (kb.isVariable(arg1)) {
+            if (!arg1IsConstant) { // arg1 is variable
                 substitution.put(arg1, arg2);
-            } else if (kb.isVariable(arg2)) {
+            } else if (!arg2IsConstant) { // arg2 is variable
                 substitution.put(arg2, arg1);
             } else {
                 return null;

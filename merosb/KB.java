@@ -4,14 +4,12 @@ class KnowledgeBase {
     private List<Clause> clauses;
     private List<Rule> rules;
     private Set<String> constants;
-    private Set<String> variables;
     private Set<String> relations;
 
     public KnowledgeBase() {
         clauses = new ArrayList<>();
         rules = new ArrayList<>();
         constants = new HashSet<>();
-        variables = new HashSet<>();
         relations = new HashSet<>();
     }
 
@@ -27,20 +25,12 @@ class KnowledgeBase {
         constants.add(constant);
     }
 
-    public void addVariable(String variable) {
-        variables.add(variable);
-    }
-
     public void addRelation(String relation) {
         relations.add(relation);
     }
 
     public boolean isConstant(String term) {
         return constants.contains(term);
-    }
-
-    public boolean isVariable(String term) {
-        return variables.contains(term);
     }
 
     public boolean isRelation(String predicate) {
@@ -65,7 +55,6 @@ class KnowledgeBase {
             System.out.println(r);
         }
         System.out.println("\nStatheres: " + constants);
-        System.out.println("Metavlites: " + variables);
         System.out.println("Sxeseis: " + relations);
     }
 }

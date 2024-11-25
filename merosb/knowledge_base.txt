@@ -1,16 +1,20 @@
-Constants: Giannis, Xristos, Babis, Sofia, Eleni, Kiriakos, Dimos
-Variables: x, y, z
-Relations: isFatherOf, isMotherOf, isFriendOf, isAcquaintanceOf, isGrandadOf
+Constants: Giannis, Xristos, Babis, Sofia, Eleni, Kiriakos, Dimos, Kostas
+Relations: isFatherOf, isMotherOf, isFriendOf, isAcquaintanceOf, isGrandadOf, isGrandmomOf
 
-KB:
 isFatherOf(Giannis, Xristos)
 isFatherOf(Xristos, Babis)
 isMotherOf(Sofia, Xristos)
 isMotherOf(Eleni, Babis)
-isFriendOf(Xristos, Babis)
+isFriendOf(Xristos, Kostas)
 isFriendOf(Babis, Kiriakos)
 isFriendOf(Kiriakos, Dimos)
 isFriendOf(Dimos, Eleni)
+
 [isFatherOf(x, y) AND isFatherOf(y, z)] => isGrandadOf(x, z)
+[isFatherOf(x, y) AND isMotherOf(y, z)] => isGrandadOf(x, z)
+
+[isMotherOf(x, y) AND isFatherOf(y, z)] => isGrandmomOf(x, z)
+[isMotherOf(x, y) AND isMotherOf(y, z)] => isGrandmomOf(x, z)
+
 [isFriendOf(x, y) AND isFriendOf(y, z)] => isAcquaintanceOf(x, z)
 [isFriendOf(x, y)] => isAcquaintanceOf(x, z)

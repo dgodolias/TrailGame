@@ -12,7 +12,6 @@ public class Main {
         try {
             BufferedReader reader = new BufferedReader(new FileReader("knowledge_base.txt"));
             String line;
-            boolean isKBSection = false;
             while ((line = reader.readLine()) != null) {
                 line = line.trim();
                 if (line.isEmpty()) continue;
@@ -25,14 +24,6 @@ public class Main {
                         constant = constant.trim();
                         knowledgeBase.addConstant(constant);
                     }
-                } else if (line.startsWith("Variables:")) {
-                    // Epexergasia metavliton
-                    String variablesLine = line.substring("Variables:".length()).trim();
-                    String[] variables = variablesLine.split(",");
-                    for (String variable : variables) {
-                        variable = variable.trim();
-                        knowledgeBase.addVariable(variable);
-                    }
                 } else if (line.startsWith("Relations:")) {
                     // Epexergasia sxeseon
                     String relationsLine = line.substring("Relations:".length()).trim();
@@ -41,32 +32,26 @@ public class Main {
                         relation = relation.trim();
                         knowledgeBase.addRelation(relation);
                     }
-                } else if (line.startsWith("KB:")) {
-                    // Arxi tis enotitas KB
-                    isKBSection = true;
-                } else if (isKBSection) {
-                    // Epexergasia KB
-                    if (line.contains("=>")) {
-                        // Epexergasia kanona
-                        if (!parseRule(line, knowledgeBase)) {
-                            System.err.println("Lathos stin epexergasia kanona: " + line);
-                            System.err.println("Parakaloume vevaiotheite oti o kanonas einai sti sosti morfi:");
-                            System.err.println("[Proypothesi1 AND Proypothesi2 AND ...] => Symperasma");
-                            reader.close();
-                            return;
-                        }
+                } else if (line.contains("=>")) {
+                    // Epexergasia kanona
+                    if (!parseRule(line, knowledgeBase)) {
+                        System.err.println("Lathos stin epexergasia kanona: " + line);
+                        System.err.println("Parakaloume vevaiotheite oti o kanonas einai sti sosti morfi:");
+                        System.err.println("[Proypothesi1 AND Proypothesi2 AND ...] => Symperasma");
+                        reader.close();
+                        return;
+                    }
+                } else {
+                    // Epexergasia gegonotos (clause)
+                    Clause clause = parseClause(line, knowledgeBase);
+                    if (clause != null) {
+                        knowledgeBase.addClause(clause);
                     } else {
-                        // Epexergasia gegonotos (clause)
-                        Clause clause = parseClause(line, knowledgeBase);
-                        if (clause != null) {
-                            knowledgeBase.addClause(clause);
-                        } else {
-                            System.err.println("Lathos stin epexergasia protasis: " + line);
-                            System.err.println("Parakaloume vevaiotheite oti i protasi einai sti sosti morfi:");
-                            System.err.println("Predicate(arg1, arg2, ...)");
-                            reader.close();
-                            return;
-                        }
+                        System.err.println("Lathos stin epexergasia protasis: " + line);
+                        System.err.println("Parakaloume vevaiotheite oti i protasi einai sti sosti morfi:");
+                        System.err.println("Predicate(arg1, arg2, ...)");
+                        reader.close();
+                        return;
                     }
                 }
             }
@@ -132,7 +117,7 @@ public class Main {
         premisesPart = removeOuterBrackets(premisesPart);
         if (premisesPart == null) {
             System.err.println("Lathos stin epexergasia ton proypotheseon tou kanona: " + originalLine);
-            System.err.println("Asymfonia stis agkyles twn proypotheseon.");
+            System.err.println("Asymfoni amentoboli stis agkyles twn proypotheseon.");
             return false;
         }
 
@@ -145,7 +130,7 @@ public class Main {
             if (premise != null) {
                 premises.add(premise);
             } else {
-                System.err.println("Lathos stin epexergasia ths proypotheshs: " + premiseString);
+                System.err.println("Lathos stin epexergasia tis proypothesis: " + premiseString);
                 return false;
             }
         }
@@ -209,9 +194,13 @@ public class Main {
         for (int i = 0; i < args.length; i++) {
             args[i] = args[i].trim();
             String arg = args[i];
-            if (!kb.isVariable(arg) && !kb.isConstant(arg)) {
-                System.err.println("To orisma '" + arg + "' den exei dilothei os metavliti i stathera.");
+            if (!kb.isConstant(arg) && !kb.isRelation(arg)) {
+                // It's a variable, do nothing
+            } else if (kb.isRelation(arg)) {
+                System.err.println("To orisma '" + arg + "' den mporei na einai sxesi mesa se orisma.");
                 return null;
+            } else {
+                // It's a constant
             }
         }
         Clause clause = new Clause(predicate, args);
