@@ -1,106 +1,156 @@
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.*;
 
 public class Main {
     public static void main(String[] args) {
         // Δημιουργία βάσης γνώσεων
         KnowledgeBase knowledgeBase = new KnowledgeBase();
 
-        // Προσθήκη σταθερών και μεταβλητών
-        knowledgeBase.addConstant("Xristos");
-        knowledgeBase.addConstant("Babis");
-        knowledgeBase.addConstant("Kiriakos");
-        knowledgeBase.addConstant("Dimos");
-        knowledgeBase.addConstant("Giannis");
-        knowledgeBase.addConstant("Markos");
-        knowledgeBase.addConstant("Sofia");
-        knowledgeBase.addConstant("Eleni");
-
-        knowledgeBase.addVariable("x");
-        knowledgeBase.addVariable("y");
-        knowledgeBase.addVariable("z");
-
-        // Προσθήκη οριστικών προτάσεων για το νέο σενάριο σχέσεων
-        knowledgeBase.addClause(new Clause("isFriendOf", "Xristos", "Babis"));
-        knowledgeBase.addClause(new Clause("isFriendOf", "Babis", "Kiriakos"));
-        knowledgeBase.addClause(new Clause("isFriendOf", "Kiriakos", "Dimos"));
-        knowledgeBase.addClause(new Clause("isFatherOf", "Giannis", "Xristos"));
-        knowledgeBase.addClause(new Clause("isFatherOf", "Xristos", "Babis"));
-        knowledgeBase.addClause(new Clause("isMotherOf", "Sofia", "Xristos"));
-        knowledgeBase.addClause(new Clause("isMotherOf", "Eleni", "Babis"));
-        knowledgeBase.addClause(new Clause("isFriendOf", "Dimos", "Eleni"));
-
-        // Προσθήκη κανόνα (isFatherOf(x, y) AND isFatherOf(y, z)) => isGrandadOf(x, z)
-        List<Clause> premises = new ArrayList<>();
-        premises.add(new Clause("isFatherOf", "x", "y"));
-        premises.add(new Clause("isFatherOf", "y", "z"));
-        Clause conclusion = new Clause("isGrandadOf", "x", "z");
-
-        Rule rule = new Rule(premises, conclusion);
-        knowledgeBase.addRule(rule);
-
-        // Προσθήκη κανόνα (isFriendOf(x, y) AND isFriendOf(y, z)) => isAcquaintanceOf(x, z)
-        List<Clause> friendPremises = new ArrayList<>();
-        friendPremises.add(new Clause("isFriendOf", "x", "y"));
-        friendPremises.add(new Clause("isFriendOf", "y", "z"));
-        Clause friendConclusion = new Clause("isAcquaintanceOf", "x", "z");
-
-        Rule friendRule = new Rule(friendPremises, friendConclusion);
-        knowledgeBase.addRule(friendRule);
+        // Διαβάζουμε τη βάση γνώσεων από το αρχείο
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader("knowledge_base.txt"));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty()) continue;
+                if (line.contains("=>")) {
+                    // Επεξεργασία κανόνα
+                    parseRule(line, knowledgeBase);
+                } else {
+                    // Επεξεργασία γεγονότος
+                    Clause clause = parseClause(line);
+                    if (clause != null) {
+                        knowledgeBase.addClause(clause);
+                    }
+                }
+            }
+            reader.close();
+        } catch (IOException e) {
+            System.err.println("Σφάλμα κατά την ανάγνωση του αρχείου βάσης γνώσεων: " + e.getMessage());
+            return;
+        }
 
         // Εκτύπωση της βάσης γνώσεων
         knowledgeBase.printKnowledgeBase();
 
-        // Ερώτηση για το αν ο Giannis είναι παππούς του Babis
-        System.out.println("\nΕρώτηση: Είναι ο Giannis παππούς του Babis;");
-        Clause query = new Clause("isGrandadOf", "Giannis", "Babis");
+        // Δέχεται τον προς απόδειξη τύπο από το πληκτρολόγιο
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("\nΕισάγετε τον προς απόδειξη τύπο (π.χ., isGrandadOf(Giannis, Babis)):");
+        String queryInput = scanner.nextLine().trim();
+
+        Clause query = parseClause(queryInput);
+        if (query == null) {
+            System.err.println("Λάθος μορφή πρότασης: " + queryInput);
+            scanner.close();
+            return;
+        }
 
         List<Map<String, String>> results = Conclusion.folBcAsk(knowledgeBase, query);
 
-        // Εκτύπωση αποτελεσμάτων
+        // Εκτύπωση αποτελέσματος
         if (!results.isEmpty()) {
-            System.out.println("Αποτέλεσμα: Ναι, ο Giannis είναι παππούς του Babis.");
+            System.out.println("Αποτέλεσμα: Αληθές. Ο τύπος αποδείχθηκε.");
             System.out.println("Υποκαταστάσεις:");
             for (Map<String, String> substitution : results) {
                 System.out.println(substitution);
             }
         } else {
-            System.out.println("Αποτέλεσμα: Όχι, δεν μπορεί να αποδειχθεί ότι ο Giannis είναι παππούς του Babis.");
+            System.out.println("Αποτέλεσμα: Ψευδές. Ο τύπος δεν μπόρεσε να αποδειχθεί.");
         }
 
-        // Ερώτηση για το αν ο Xristos και ο Kiriakos είναι γνωστοί
-        System.out.println("\nΕρώτηση: Είναι ο Xristos και ο Kiriakos γνωστοί;");
-        Clause acquaintanceQuery1 = new Clause("isAcquaintanceOf", "Xristos", "Kiriakos");
-
-        List<Map<String, String>> acquaintanceResults1 = Conclusion.folBcAsk(knowledgeBase, acquaintanceQuery1);
-
-        // Εκτύπωση αποτελεσμάτων
-        if (!acquaintanceResults1.isEmpty()) {
-            System.out.println("Αποτέλεσμα: Ναι, ο Xristos και ο Kiriakos είναι γνωστοί.");
-            System.out.println("Υποκαταστάσεις:");
-            for (Map<String, String> substitution : acquaintanceResults1) {
-                System.out.println(substitution);
-            }
-        } else {
-            System.out.println("Αποτέλεσμα: Όχι, δεν μπορεί να αποδειχθεί ότι ο Xristos και ο Kiriakos είναι γνωστοί.");
-        }
-
-        // Ερώτηση για το αν η Sofia και ο Babis είναι γνωστοί
-        System.out.println("\nΕρώτηση: Είναι η Sofia και ο Babis γνωστοί;");
-        Clause acquaintanceQuery2 = new Clause("isAcquaintanceOf", "Sofia", "Babis");
-
-        List<Map<String, String>> acquaintanceResults2 = Conclusion.folBcAsk(knowledgeBase, acquaintanceQuery2);
-
-        // Εκτύπωση αποτελεσμάτων
-        if (!acquaintanceResults2.isEmpty()) {
-            System.out.println("Αποτέλεσμα: Ναι, η Sofia και ο Babis είναι γνωστοί.");
-            System.out.println("Υποκαταστάσεις:");
-            for (Map<String, String> substitution : acquaintanceResults2) {
-                System.out.println(substitution);
-            }
-        } else {
-            System.out.println("Αποτέλεσμα: Όχι, δεν μπορεί να αποδειχθεί ότι η Sofia και ο Babis είναι γνωστοί.");
-        }
+        scanner.close();
     }
+
+    private static void parseRule(String line, KnowledgeBase kb) {
+        // Remove outer brackets or parentheses
+        line = removeOuterBrackets(line);
+    
+        // Split premises and conclusion using the '=>' operator
+        String[] parts = line.split("=>");
+        if (parts.length != 2) {
+            System.err.println("Λάθος μορφή κανόνα: " + line);
+            return;
+        }
+        String premisesPart = parts[0].trim();
+        String conclusionPart = parts[1].trim();
+    
+        // Remove outer brackets from premises
+        premisesPart = removeOuterBrackets(premisesPart);
+    
+        // Split premises using 'AND'
+        String[] premiseStrings = premisesPart.split("AND");
+        List<Clause> premises = new ArrayList<>();
+        for (String premiseString : premiseStrings) {
+            premiseString = premiseString.trim();
+            Clause premise = parseClauseWithNegation(premiseString);
+            if (premise != null) {
+                premises.add(premise);
+            } else {
+                System.err.println("Λάθος μορφή προϋπόθεσης: " + premiseString);
+                return;
+            }
+        }
+    
+        // Parse conclusion
+        Clause conclusion = parseClause(conclusionPart);
+        if (conclusion == null) {
+            System.err.println("Λάθος μορφή συμπεράσματος: " + conclusionPart);
+            return;
+        }
+    
+        // Add the rule to the knowledge base
+        Rule rule = new Rule(premises, conclusion);
+        kb.addRule(rule);
+    }
+    
+    private static Clause parseClauseWithNegation(String line) {
+        boolean isNegative = false;
+        line = line.trim();
+        if (line.startsWith("NOT")) {
+            isNegative = true;
+            line = line.substring(3).trim(); // Remove 'NOT'
+        }
+        Clause clause = parseClause(line);
+        if (clause != null && isNegative) {
+            clause.setNegative(true);
+        }
+        return clause;
+    }
+
+    
+    
+
+    private static String removeOuterBrackets(String s) {
+        s = s.trim();
+        while ((s.startsWith("(") && s.endsWith(")")) || (s.startsWith("[") && s.endsWith("]"))) {
+            char openChar = s.charAt(0);
+            char closeChar = s.charAt(s.length() - 1);
+            if ((openChar == '(' && closeChar == ')') || (openChar == '[' && closeChar == ']')) {
+                s = s.substring(1, s.length() - 1).trim();
+            } else {
+                break;
+            }
+        }
+        return s;
+    }
+    
+
+    private static Clause parseClause(String line) {
+        int start = line.indexOf('(');
+        int end = line.lastIndexOf(')');
+        if (start == -1 || end == -1 || end < start) {
+            System.err.println("Λάθος μορφή πρότασης: " + line);
+            return null;
+        }
+        String predicate = line.substring(0, start).trim();
+        String argsString = line.substring(start + 1, end).trim();
+        String[] args = argsString.split(",");
+        for (int i = 0; i < args.length; i++) {
+            args[i] = args[i].trim();
+        }
+        return new Clause(predicate, args);
+    }
+    
 }

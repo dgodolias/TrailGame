@@ -1,13 +1,10 @@
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 class KnowledgeBase {
-    private List<Clause> clauses; // Λίστα με όλες τις προτάσεις
-    private List<Rule> rules;     // Λίστα με όλους τους κανόνες
-    private Set<String> constants; // Σετ για τις σταθερές
-    private Set<String> variables; // Σετ για τις μεταβλητές
+    private List<Clause> clauses;
+    private List<Rule> rules;
+    private Set<String> constants;
+    private Set<String> variables;
 
     public KnowledgeBase() {
         clauses = new ArrayList<>();
@@ -18,11 +15,29 @@ class KnowledgeBase {
 
     public void addClause(Clause clause) {
         clauses.add(clause);
+        updateTerms(clause);
     }
+    
 
     public void addRule(Rule rule) {
         rules.add(rule);
+        // Ενημέρωση των σταθερών και μεταβλητών
+        for (Clause clause : rule.getPremises()) {
+            updateTerms(clause);
+        }
+        updateTerms(rule.getConclusion());
     }
+
+    private void updateTerms(Clause clause) {
+        for (String arg : clause.arguments) {
+            if (Character.isUpperCase(arg.charAt(0))) {
+                constants.add(arg);
+            } else {
+                variables.add(arg);
+            }
+        }
+    }
+    
 
     public List<Clause> getClauses() {
         return clauses;
@@ -30,14 +45,6 @@ class KnowledgeBase {
 
     public List<Rule> getRules() {
         return rules;
-    }
-
-    public void addConstant(String constant) {
-        constants.add(constant);
-    }
-
-    public void addVariable(String variable) {
-        variables.add(variable);
     }
 
     public boolean isConstant(String term) {
@@ -52,6 +59,10 @@ class KnowledgeBase {
         System.out.println("Βάση Γνώσεων:");
         for (Clause c : clauses) {
             System.out.println(c);
+        }
+        System.out.println("\nΚανόνες:");
+        for (Rule r : rules) {
+            System.out.println(r);
         }
         System.out.println("\nΣταθερές: " + constants);
         System.out.println("Μεταβλητές: " + variables);
