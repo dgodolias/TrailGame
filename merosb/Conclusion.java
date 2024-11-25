@@ -14,7 +14,8 @@ class Conclusion {
 
     public static FolBcAskResult folBcAsk(KnowledgeBase kb, Clause query) {
         ProofNode proofTree = new ProofNode(query, new HashMap<>());
-        boolean success = folBcAsk(kb, List.of(query), new HashMap<>(), proofTree);
+        boolean success = folBcAsk(kb, List.of(query), new HashMap<>(), proofTree, new HashSet<>());
+        // Only print the proof tree if a successful proof was found
         if (success) {
             Map<String, String> totalTheta = collectSubstitutions(proofTree);
             printProofTree(proofTree, 0, new HashMap<>());
@@ -27,39 +28,54 @@ class Conclusion {
     }
 
     private static boolean folBcAsk(KnowledgeBase kb, List<Clause> goals, Map<String, String> theta,
-                                    ProofNode proofNode) {
+                                    ProofNode proofNode, Set<String> visitedGoals) {
         if (goals.isEmpty()) {
             proofNode.theta.putAll(theta);
-            return true;
+            return true; // Proof succeeded
         }
 
         Clause firstGoal = goals.get(0);
+        Clause substitutedGoal = substituteInClause(firstGoal, theta);
+        String goalKey = getGoalKey(substitutedGoal);
+
+        // Check for loops
+        if (visitedGoals.contains(goalKey)) {
+            return false; // Already attempted this goal in current path
+        }
+
+        // Add to visitedGoals
+        visitedGoals.add(goalKey);
+
         List<Clause> restGoals = goals.subList(1, goals.size());
         boolean success = false;
 
+        // Try to unify with facts
         for (Clause fact : kb.getClauses()) {
-            Map<String, String> thetaPrime = Unifier.unify(substituteInClause(firstGoal, theta), fact, kb);
+            Map<String, String> thetaPrime = Unifier.unify(substitutedGoal, fact, kb);
             if (thetaPrime != null) {
                 Map<String, String> newTheta = compose(theta, thetaPrime);
                 List<Clause> newGoals = new ArrayList<>(restGoals);
                 substInGoals(newGoals, thetaPrime);
                 ProofNode childNode = new ProofNode(fact, thetaPrime);
-                boolean result = folBcAsk(kb, newGoals, newTheta, childNode);
+                boolean result = folBcAsk(kb, newGoals, newTheta, childNode, visitedGoals);
                 if (result) {
                     proofNode.addChild(childNode);
                     proofNode.theta.putAll(childNode.theta);
                     success = true;
-                    break;
+                    break; // Stop after finding one successful proof
                 }
             }
         }
 
+        // Try to unify with rules
         for (Rule rule : kb.getRules()) {
+            // Create a standardized copy of the rule
             Rule standardizedRule = standardizeVariables(rule);
             Clause conclusion = standardizedRule.getConclusion();
-            Map<String, String> thetaPrime = Unifier.unify(substituteInClause(firstGoal, theta), conclusion, kb);
+            Map<String, String> thetaPrime = Unifier.unify(substitutedGoal, conclusion, kb);
             if (thetaPrime != null) {
                 Map<String, String> newTheta = compose(theta, thetaPrime);
+                // Process the premises
                 List<Clause> premises = standardizedRule.getPremises();
                 ProofNode childNode = new ProofNode(conclusion, thetaPrime);
                 boolean premisesProved = true;
@@ -67,7 +83,7 @@ class Conclusion {
 
                 for (Clause premise : premises) {
                     ProofNode premiseNode = new ProofNode(premise, new HashMap<>());
-                    boolean premiseResult = folBcAsk(kb, List.of(premise), thetaCopy, premiseNode);
+                    boolean premiseResult = folBcAsk(kb, List.of(premise), thetaCopy, premiseNode, visitedGoals);
                     if (premiseResult) {
                         childNode.addChild(premiseNode);
                         thetaCopy.putAll(premiseNode.theta);
@@ -78,20 +94,46 @@ class Conclusion {
                 }
 
                 if (premisesProved) {
+                    // All premises proved, now proceed with restGoals
                     List<Clause> newGoals = new ArrayList<>(restGoals);
                     substInGoals(newGoals, thetaCopy);
-                    boolean result = folBcAsk(kb, newGoals, thetaCopy, childNode);
+                    boolean result = folBcAsk(kb, newGoals, thetaCopy, childNode, visitedGoals);
                     if (result) {
                         proofNode.addChild(childNode);
                         proofNode.theta.putAll(childNode.theta);
                         success = true;
-                        break;
+                        break; // Stop after finding one successful proof
                     }
                 }
             }
         }
 
+        // Remove from visitedGoals when backtracking
+        visitedGoals.remove(goalKey);
+
         return success;
+    }
+
+    // New method to generate the goalKey
+    private static String getGoalKey(Clause clause) {
+        StringBuilder keyBuilder = new StringBuilder();
+        keyBuilder.append(clause.predicate);
+        keyBuilder.append("(");
+        for (int i = 0; i < clause.arguments.size(); i++) {
+            String arg = clause.arguments.get(i);
+            if (Character.isUpperCase(arg.charAt(0))) {
+                // It's a constant
+                keyBuilder.append(arg);
+            } else {
+                // It's a variable
+                keyBuilder.append("Var");
+            }
+            if (i < clause.arguments.size() - 1) {
+                keyBuilder.append(", ");
+            }
+        }
+        keyBuilder.append(")");
+        return keyBuilder.toString();
     }
 
     private static void substInGoals(List<Clause> goals, Map<String, String> theta) {
@@ -142,7 +184,7 @@ class Conclusion {
     private static Clause standardizeClauseVariables(Clause clause, Map<String, String> variableMapping) {
         List<String> newArguments = new ArrayList<>();
         for (String arg : clause.arguments) {
-            if (!Character.isUpperCase(arg.charAt(0))) {
+            if (!Character.isUpperCase(arg.charAt(0))) { // If it's a variable
                 String newVar = variableMapping.get(arg);
                 if (newVar == null) {
                     newVar = arg + "_" + varIndex++;
