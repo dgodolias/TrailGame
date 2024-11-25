@@ -195,12 +195,9 @@ public class Main {
             args[i] = args[i].trim();
             String arg = args[i];
             if (!kb.isConstant(arg) && !kb.isRelation(arg)) {
-                // It's a variable, do nothing
             } else if (kb.isRelation(arg)) {
                 System.err.println("To orisma '" + arg + "' den mporei na einai sxesi mesa se orisma.");
                 return null;
-            } else {
-                // It's a constant
             }
         }
         Clause clause = new Clause(predicate, args);

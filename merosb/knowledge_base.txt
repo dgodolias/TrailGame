@@ -1,8 +1,9 @@
-Constants: Giannis, Xristos, Babis, Sofia, Eleni, Kiriakos, Dimos, Kostas, Xrisa
-Relations: isFatherOf, isMotherOf, isFriendOf, isAcquaintanceOf, isGrandadOf, isGrandmomOf, AreMarried, Sympetheres
+Constants: Giannis, Xristos, Babis, Sofia, Eleni, Kiriakos, Dimos, Kostas, Xrisa, Leonidas
+Relations: isFatherOf, isMotherOf, isFriendOf, isAcquaintanceOf, isGrandadOf, isGrandmomOf, AreMarried, Sympetheres, Sympetheroi, Sympetheria
 
 isFatherOf(Giannis, Xristos)
 isFatherOf(Xristos, Babis)
+isFatherOf(Leonidas, Eleni)
 isMotherOf(Sofia, Xristos)
 isMotherOf(Eleni, Babis)
 isMotherOf(Xrisa, Eleni)
@@ -13,7 +14,9 @@ isFriendOf(Dimos, Eleni)
 
 isFriendOf(x, y) => isFriendOf(y, x)
 AreMarried(x, y) => AreMarried(y, x)
-Sympetheres(e, r) => Sympetheres(r, e)
+Sympetheres(x, y) => Sympetheres(y, x)
+Sympetheroi(x, y) => Sympetheroi(y, x)
+Sympetheria(a,b,c,d) => Sympetheria(c,d,a,b)
 
 [isFatherOf(x, y) AND isFatherOf(y, z)] => isGrandadOf(x, z)
 [isFatherOf(x, y) AND isMotherOf(y, z)] => isGrandadOf(x, z)
@@ -27,3 +30,6 @@ Sympetheres(e, r) => Sympetheres(r, e)
 [isMotherOf(x, y) AND isFatherOf(z, y)] => AreMarried(x, z)
 
 [AreMarried(x, y) AND isMotherOf(z,x) AND isMotherOf(w,y)] => Sympetheres(z,w)
+[AreMarried(x, y) AND isFatherOf(z,x) AND isFatherOf(w,y)] => Sympetheroi(z,w)
+
+[Sympetheres(a,c) AND Sympetheroi(b,d)] => Sympetheria(a,b,c,d)
