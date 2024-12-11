@@ -1,0 +1,7 @@
+P>Q
+L&M>P
+C&D>M
+A&B>L
+
+A
+C

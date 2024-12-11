@@ -1,0 +1,7 @@
+T > U
+R & S > T
+Q > R
+P > R
+
+P
+S 
