@@ -1,4 +1,4 @@
-package forward_Chaining;
+package merosB1;
 
 public class Main {
     public static void main(String[] args) {
@@ -6,7 +6,7 @@ public class Main {
         BaseKnowledge base_knowledge = new BaseKnowledge();
 
         plfcEntails Entails= new plfcEntails(base_knowledge);
-        boolean result=Entails.solve('U');
+        boolean result=Entails.solve('Q');
 
         System.out.println(result);
         // Entails.printComputationTree();

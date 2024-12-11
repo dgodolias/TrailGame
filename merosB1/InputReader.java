@@ -1,4 +1,4 @@
-package forward_Chaining;
+package merosB1;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -9,7 +9,7 @@ public class InputReader {
     private String filePath;
     private ArrayList<String> BaseKnowledge;
     InputReader(){
-        this.filePath = "C:\\Users\\swkra\\OneDrive - aueb.gr\\Uni\\5th-Semester\\Τεχνητή Νοημοσύνη\\Εργασίες\\ergasia1\\forward_Chaining\\example3.txt";
+        this.filePath = "example2.txt";
         this.BaseKnowledge=new ArrayList<String>();
     }
 

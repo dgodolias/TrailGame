@@ -1,4 +1,4 @@
-package forward_Chaining;
+package merosB1;
 
 import java.util.ArrayList;
 import java.util.HashMap;
