@@ -7,7 +7,7 @@ public class InputReader {
     private String filePath;
     private ArrayList<String> BaseKnowledge;
     InputReader(){
-        this.filePath = "example2.txt";
+        this.filePath = "example.txt";
         this.BaseKnowledge=new ArrayList<String>();
     }
 
