@@ -1,5 +1,3 @@
-package merosB1;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -26,7 +24,7 @@ public class plfcEntails {
     for (String clause : data) {
         clause=clause.strip();
         if (clause.length() == 1) {
-            queue.add(clause.charAt(0)); // Add single-character clauses to the agenda
+            queue.add(clause.charAt(0)); 
         }
     }
     System.out.println(queue);
@@ -49,7 +47,6 @@ public class plfcEntails {
     private HashMap<Character, Boolean> make_inferred(BaseKnowledge knowledge) {
         HashMap<Character, Boolean> inferred = new HashMap<>();
     
-        // Add all conclusions and premises to the inferred map
         for (Character conclusion : this.premises.keySet()) {
             inferred.put(conclusion, false);
             for (Character premise : this.premises.get(conclusion)) {
@@ -68,7 +65,7 @@ public class plfcEntails {
 
     public boolean solve(Character Q) {
         while (!this.agenda.isEmpty()) {
-            Character p = this.agenda.poll(); // Get next symbol
+            Character p = this.agenda.poll();
             System.out.println("Processing: " + p);
     
             if (p.equals(Q)) {
@@ -76,12 +73,12 @@ public class plfcEntails {
             }
     
             if (!this.inferred.get(p)) {
-                this.inferred.put(p, true); // Mark as inferred
+                this.inferred.put(p, true); 
                 for (Character conclusion : this.premises.keySet()) {
                     List<Character> premiseList = this.premises.get(conclusion);
                     if (premiseList.contains(p)) {
-                        this.count.put(conclusion, this.count.get(conclusion) - 1); // Decrement count
-                        if (this.count.get(conclusion) == 0) { // All premises satisfied
+                        this.count.put(conclusion, this.count.get(conclusion) - 1); 
+                        if (this.count.get(conclusion) == 0) { 
                             if (!this.inferred.get(conclusion)) {
                                 System.out.println("Adding to agenda: " + conclusion);
                                 this.agenda.add(conclusion);
@@ -92,7 +89,7 @@ public class plfcEntails {
             }
         }
     
-        return false; // If agenda is empty and Q is not inferred
+        return false; 
     }
     
 
